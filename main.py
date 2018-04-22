@@ -56,7 +56,7 @@ def gen_order_text(orders, p):
     text = ''
     try:
         t = date.today()  # 仅获取日期
-        text = u'报单 - 日期：%s月%s日，档口：%s\n\n' % (t.month, t.day, p)
+        text = u'报单(网店史小姐)\n日期：%s月%s日\n档口：%s\n\n' % (t.month, t.day, p)
         text = text + "------------------------------\n"
         o = orders[p]
         for l in o:
@@ -114,7 +114,7 @@ def print_all_order_text(orders):
         print
 
 
-itchat.auto_login(hotReload=True)
+itchat.auto_login(hotReload=True, enableCmdQR=True)
 
 friends = itchat.get_friends()
 
