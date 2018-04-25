@@ -6,7 +6,7 @@ def gen_order_text(orders, p):
     text = ''
     try:
         t = date.today()  # 仅获取日期
-        text = u'报单(网店史小姐)\n日期：%s月%s日\n档口：%s\n\n' % (t.month, t.day, p)
+        text = u'报单\n日期：%s月%s日\n档口：%s\n\n' % (t.month, t.day, p)
         text = text + "------------------------------\n"
         o = orders[p]
         for l in o:
@@ -19,7 +19,9 @@ def gen_order_text(orders, p):
 
 
 
-def print_all_order_text(orders):
+def gen_all_orders_text(orders):
+    s = u''
     for p in orders.keys():
-        print gen_order_text(orders, p)
-        print
+        s = s + gen_order_text(orders, p)
+        s = s + '\n'
+    return s

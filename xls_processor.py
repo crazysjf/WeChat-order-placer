@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
-import xlrd, xlwt
-from xlutils.copy import copy
+from openpyxl import load_workbook
+import openpyxl.styles as sty
 
 class Singleton(object):
     _instance = None
@@ -13,11 +13,11 @@ class XlsProcessor(Singleton):
     def __init__(self, f):
         self._f = f
 
-    def _get_xls_column_nr(self, table_head, name):
-        for i in range(0, len(table_head)):
-            if table_head[i] == name:
-                return i
-        return None
+    # def _get_xls_column_nr(self, table_head, name):
+    #     for i in range(0, len(table_head)):
+    #         if table_head[i] == name:
+    #             return i
+    #     return None
 
     def _convert_possible_float_to_str(self, v):
         '如果v是浮点，则转为字符串，否则原样返回'
@@ -25,6 +25,13 @@ class XlsProcessor(Singleton):
             return str(int(v))
         else:
             return v
+
+    def _get_column_cn(self, ws, name):
+        for c in range(1, ws.max_column):
+            v = ws.cell(row = 1, column=c).value
+            if v == name:
+                return c
+        return None
 
     def gen_orders(self):
         '''
@@ -37,31 +44,31 @@ class XlsProcessor(Singleton):
         ...
         }
         '''
-        sheet = xlrd.open_workbook(self._f).sheets()[0]
-        nrows = sheet.nrows
-        head = sheet.row_values(0)
-        self.provider_cn = self._get_xls_column_nr(head, u'供应商')
-        self.code_cn = self._get_xls_column_nr(head, u'供应商款号')
-        self.spec_cn = self._get_xls_column_nr(head, u'颜色规格')
-        self.nr_cn = self._get_xls_column_nr(head, u'数量')
+        wb = load_workbook(self._f)
+        ws = wb.active
+        nrows = ws.max_row
+
+        provider_cn = self._get_column_cn(ws, u'供应商')
+        code_cn = self._get_column_cn(ws, u'供应商款号')
+        spec_cn = self._get_column_cn(ws, u'颜色规格')
+        nr_cn = self._get_column_cn(ws, u'数量')
 
         orders = {}  # 解析之后的所有订单，键值为档口名
         provider_order = []  # 单个档口的订单
 
-        old_provider = None
-        for i in range(1, nrows):
-            provider = self._convert_possible_float_to_str(sheet.cell(i, self.provider_cn).value)
+        for i in range(2, nrows):
+            provider = self._convert_possible_float_to_str(ws.cell(row=i, column=provider_cn).value)
 
-            if provider == "":
+            if provider == None:
                 continue
             if provider == "**" or provider == u"样衣":
                 # 截止到内容未**，或者“样衣”两个字的行
                 break
 
             order_line = {}
-            order_line['code'] = self._convert_possible_float_to_str(sheet.cell(i, self.code_cn).value)
-            order_line['spec'] = sheet.cell(i, self.spec_cn).value
-            order_line['nr'] = self._convert_possible_float_to_str(sheet.cell(i, self.nr_cn).value)
+            order_line['code'] = self._convert_possible_float_to_str(ws.cell(row=i, column=code_cn).value)
+            order_line['spec'] = ws.cell(row=i, column=spec_cn).value
+            order_line['nr'] = self._convert_possible_float_to_str(ws.cell(row=i, column=nr_cn).value)
 
             provider_order.append(order_line)
 
@@ -70,25 +77,41 @@ class XlsProcessor(Singleton):
             else:
                 orders[provider] = [order_line]
 
+        wb.close()
         return orders
 
-    def _change_cell_style(self, sheet,  x, y):
-        pattern = xlwt.Pattern()  # Create the Pattern
-        pattern.pattern = xlwt.Pattern.SOLID_PATTERN  # May be: NO_PATTERN, SOLID_PATTERN, or 0x00 through 0x12
-        pattern.pattern_fore_colour = 5  # May be: 8 through 63. 0 = Black, 1 = White, 2 = Red, 3 = Green, 4 = Blue, 5 = Yellow, 6 = Magenta, 7 = Cyan, 16 = Maroon, 17 = Dark Green, 18 = Dark Blue, 19 = Dark Yellow , almost brown), 20 = Dark Magenta, 21 = Teal, 22 = Light Gray, 23 = Dark Gray, the list goes on...
-        style = xlwt.XFStyle()  # Create the Pattern
-        style.pattern = pattern  # Add Pattern to Style
-        sheet.write(x, y, 'Cell Contents', style)
+    def annotate_unknown_providers(self, unknown_provider):
+        '''
+        把未知供应商标记为红色。
+        成功返回True
+        如果文件被其他应用打开，标注失败，返回False。
+        :param unknown_provider: 
+        :return: 
+        '''
+        wb = load_workbook(self._f)
+        ws = wb.active
 
-    def annotate_unknown_provider(self, unknown_provider):
-        old_excel = xlrd.open_workbook(self._f, formatting_info=True)
-        new_excel = copy(old_excel)
-        sheet = new_excel.get_sheet(0)
-
+        provider_cn = self._get_column_cn(ws, u'供应商')
         # 写入数据
-        for p in unknown_provider:
-            for i in range(1, sheet.nrows):
-                if sheet.cell(i, self.provider_cn).value == p:
-                    self._change_cell_style(sheet, i, self.provider_cn)
+        for i in range(2, ws.max_row):
+            cell = ws.cell(row=i, column=provider_cn)
+            v = cell.value
+            for p in unknown_provider:
+                if v == p:
+                    cell.fill = sty.PatternFill(fill_type='solid', fgColor="ff6347")
+        try:
+            wb.save(self._f)
+        except IOError:
+            return False
 
-        new_excel.save(self._f)
+        wb.close()
+        return True
+
+if __name__ == "__main__":
+    xp = XlsProcessor('./test.xlsx')
+    orders = xp.gen_orders()
+    import  utils
+    print utils.gen_all_orders_text(orders)
+
+    up = [u'53d123', u'孙劲飞']
+    print xp.annotate_unknown_providers(up)

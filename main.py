@@ -1,7 +1,6 @@
 # -*- coding: utf-8 -*-
 import itchat
 import re
-import xlrd
 import sys
 import utils
 from xls_processor import XlsProcessor
@@ -60,22 +59,21 @@ friends = itchat.get_friends()
 
 
 
-unfound_provider = []
+unknown_providers = []
 for p in orders.keys():
     f = get_store(friends, p)
     if f == None:
-        unfound_provider.append(p)
+        unknown_providers.append(p)
 
 print u'报单内容：'
-utils.print_all_order_text(orders)
+print utils.gen_all_orders_text(orders)
 print
 
 print u'以下供应商未找到：'
-for p in unfound_provider:
+for p in unknown_providers:
     print p
 print
 
-xls_processor.annotate_unknown_provider(unfound_provider)
 
 while(True):
     #TODO: Continue这行只能用英文，用中文或者unicode会导致powershell中执行异常
@@ -86,8 +84,14 @@ while(True):
             if f != None:
                 order_text = utils.gen_order_text(orders, p)
                 itchat.send(order_text, toUserName=f['UserName'])
-        exit()
+        break
     elif str == 'n' or str == "N":
-        exit()
+        break
 
-
+while(True):
+    ret = xls_processor.annotate_unknown_providers(unknown_providers)
+    if ret == True:
+        break
+    str = raw_input("Annotaion failed. File may be open in other application. Retry? (Y/n)")
+    if str == 'n' or str == 'N':
+        break
