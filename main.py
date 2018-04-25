@@ -75,6 +75,8 @@ for p in unfound_provider:
     print p
 print
 
+xls_processor.annotate_unknown_provider(unfound_provider)
+
 while(True):
     #TODO: Continue这行只能用英文，用中文或者unicode会导致powershell中执行异常
     str = raw_input("Continue? (y/N)")

@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
-import xlrd
+import xlrd, xlwt
+from xlutils.copy import copy
 
 class Singleton(object):
     _instance = None
@@ -53,7 +54,8 @@ class XlsProcessor(Singleton):
 
             if provider == "":
                 continue
-            if provider == "**":
+            if provider == "**" or provider == u"样衣":
+                # 截止到内容未**，或者“样衣”两个字的行
                 break
 
             order_line = {}
@@ -69,3 +71,24 @@ class XlsProcessor(Singleton):
                 orders[provider] = [order_line]
 
         return orders
+
+    def _change_cell_style(self, sheet,  x, y):
+        pattern = xlwt.Pattern()  # Create the Pattern
+        pattern.pattern = xlwt.Pattern.SOLID_PATTERN  # May be: NO_PATTERN, SOLID_PATTERN, or 0x00 through 0x12
+        pattern.pattern_fore_colour = 5  # May be: 8 through 63. 0 = Black, 1 = White, 2 = Red, 3 = Green, 4 = Blue, 5 = Yellow, 6 = Magenta, 7 = Cyan, 16 = Maroon, 17 = Dark Green, 18 = Dark Blue, 19 = Dark Yellow , almost brown), 20 = Dark Magenta, 21 = Teal, 22 = Light Gray, 23 = Dark Gray, the list goes on...
+        style = xlwt.XFStyle()  # Create the Pattern
+        style.pattern = pattern  # Add Pattern to Style
+        sheet.write(x, y, 'Cell Contents', style)
+
+    def annotate_unknown_provider(self, unknown_provider):
+        old_excel = xlrd.open_workbook(self._f, formatting_info=True)
+        new_excel = copy(old_excel)
+        sheet = new_excel.get_sheet(0)
+
+        # 写入数据
+        for p in unknown_provider:
+            for i in range(1, sheet.nrows):
+                if sheet.cell(i, self.provider_cn).value == p:
+                    self._change_cell_style(sheet, i, self.provider_cn)
+
+        new_excel.save(self._f)
