@@ -3,7 +3,8 @@ import itchat
 import re
 import xlrd
 import sys
-from datetime import date, datetime
+import utils
+from xls_processor import XlsProcessor
 
 def get_store(all_friends, code):
     '''
@@ -38,85 +39,26 @@ def print_friend(f):
     for k in f.keys():
         print k, ":", f[k]
 
-def get_xls_column_nr(table_head, name):
-    for i in range(0, len(table_head)):
-        if table_head[i] == name:
-            return i
-    return None
-
-def convert_possible_float_to_str(v):
-    '如果v是浮点，则转为字符串，否则原样返回'
-    if type(v).__name__ == 'float':
-        return str(int(v))
-    else:
-        return v
-
-def gen_order_text(orders, p):
-    '生成单个档口的报单文本'
-    text = ''
-    try:
-        t = date.today()  # 仅获取日期
-        text = u'报单(网店史小姐)\n日期：%s月%s日\n档口：%s\n\n' % (t.month, t.day, p)
-        text = text + "------------------------------\n"
-        o = orders[p]
-        for l in o:
-            s = "%-5s,\t%-10s,\t%-5s\n" % (l['code'], l['spec'] , l['nr'])
-            text = text + s
-        text = text + "------------------------------\n"
-    except:
-        text = '报单生成错误'
-    return text
 
 def place_order():
     print "order placed"
 
 if len(sys.argv) == 1:
+    print u"Error： need xls file as parameter."
+    exit(-1)
     #order_xls_file = r'D:\projects\20180421-WeChat-order-placer\src\4.21.xlsx'
-    order_xls_file = r'D:\projects\20180421-WeChat-order-plxxacer\src\testxx.xlsx'
+    #order_xls_file = r'D:\projects\20180421-WeChat-order-plxxacer\src\testxx.xlsx'
 else:
     order_xls_file = sys.argv[1]
 
-sheet = xlrd.open_workbook(order_xls_file).sheets()[0]
-nrows = sheet.nrows
-head = sheet.row_values(0)
-provider_cn = get_xls_column_nr(head, u'供应商')
-code_cn = get_xls_column_nr(head, u'供应商款号')
-spec_cn = get_xls_column_nr(head, u'颜色规格')
-nr_cn   = get_xls_column_nr(head, u'数量')
-
-orders = {} # 解析之后的所有订单，键值为档口名
-provider_order = []  # 单个档口的订单
-
-old_provider = None
-for i in range(1, nrows):
-    provider = convert_possible_float_to_str(sheet.cell(i, provider_cn).value)
-
-    if provider == "":
-        continue
-    if provider == "**":
-        break
-
-    order_line = {}
-    order_line['code'] = convert_possible_float_to_str(sheet.cell(i, code_cn).value)
-    order_line['spec'] = sheet.cell(i, spec_cn).value
-    order_line['nr']   = convert_possible_float_to_str(sheet.cell(i, nr_cn).value)
-
-    provider_order.append(order_line)
-
-    if orders.has_key(provider):
-        orders[provider].append(order_line)
-    else:
-        orders[provider] = [order_line]
-
-def print_all_order_text(orders):
-    for p in orders.keys():
-        print gen_order_text(orders, p)
-        print
-
+xls_processor = XlsProcessor(order_xls_file)
+orders = xls_processor.gen_orders()
 
 itchat.auto_login(hotReload=True, enableCmdQR=True)
 
 friends = itchat.get_friends()
+
+
 
 unfound_provider = []
 for p in orders.keys():
@@ -125,7 +67,7 @@ for p in orders.keys():
         unfound_provider.append(p)
 
 print u'报单内容：'
-print_all_order_text(orders)
+utils.print_all_order_text(orders)
 print
 
 print u'以下供应商未找到：'
@@ -140,7 +82,7 @@ while(True):
         for p in orders.keys():
             f = get_store(friends, p)
             if f != None:
-                order_text = gen_order_text(orders, p)
+                order_text = utils.gen_order_text(orders, p)
                 itchat.send(order_text, toUserName=f['UserName'])
         exit()
     elif str == 'n' or str == "N":
