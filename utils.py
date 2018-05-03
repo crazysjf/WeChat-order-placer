@@ -9,9 +9,17 @@ def gen_order_text(orders, p):
         text = u'报单\n日期：%s月%s日\n档口：%s\n\n' % (t.month, t.day, p)
         text = text + "------------------------------\n"
         o = orders[p]
-        for l in o:
-            s = "%-5s,\t%-10s,\t%-5s\n" % (l['code'], l['spec'] , l['nr'])
+        last_code = 'dummy'
+        for i,l in enumerate(o):
+            code = l['code']
+            s = ""
+            # 分隔款式
+            if code != last_code and i != 0:
+                s = s + "------\n"
+
+            s = s + "%-5s,\t%-10s,\t%-5s\n" % (code, l['spec'] , l['nr'])
             text = text + s
+            last_code = code
         text = text + "------------------------------\n"
     except:
         text = '报单生成错误'
