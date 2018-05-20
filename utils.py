@@ -20,7 +20,14 @@ def gen_order_text(orders, p):
             s = s + "%-5s,\t%-10s,\t%-5s\n" % (code, l['spec'] , l['nr'])
             text = text + s
             last_code = code
-        text = text + "------------------------------\n"
+        text = text + "------------------------------\n\n"
+        text = text + u" - 为了大家的方便，请开实价、开实数，避免欠货。\n"
+        text = text + u" - 网店经营，颜色、尺码缺货请不要拼凑。\n"
+        text = text + u" - 请微信拍照发单，这边2小时内付款，货由工仔收。\n"
+        text = text + u" - 合作愉快！"
+
+
+
     except:
         text = '报单生成错误'
     return text

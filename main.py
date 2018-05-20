@@ -16,7 +16,11 @@ def get_store(all_friends, code):
     code：商家编码，如11152-茉莉
     '''
     for f in all_friends:
-        pat = r'^' + code
+        #print code
+        try:
+            pat = r'^' + code
+        except Exception as e:
+            print e.message + code
         remarkName = f['RemarkName']
         nickName = f['NickName']
         #print f
@@ -61,6 +65,7 @@ friends = itchat.get_friends()
 
 unknown_providers = []
 for p in orders.keys():
+
     f = get_store(friends, p)
     if f == None:
         unknown_providers.append(p)
