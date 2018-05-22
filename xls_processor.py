@@ -58,15 +58,16 @@ class XlsProcessor(Singleton):
 
         for i in range(2, nrows):
             provider = self._convert_possible_float_to_str(ws.cell(row=i, column=provider_cn).value)
-
-            if provider == None:
+            code = self._convert_possible_float_to_str(ws.cell(row=i, column=code_cn).value)
+            # 跳过汇总行。会总行code为空
+            if provider == None or code == None:
                 continue
             if provider == "**" or provider == u"样衣":
                 # 截止到内容未**，或者“样衣”两个字的行
                 break
 
             order_line = {}
-            order_line['code'] = self._convert_possible_float_to_str(ws.cell(row=i, column=code_cn).value)
+            order_line['code'] = code
             order_line['spec'] = ws.cell(row=i, column=spec_cn).value
             order_line['nr'] = self._convert_possible_float_to_str(ws.cell(row=i, column=nr_cn).value)
 
@@ -92,8 +93,15 @@ class XlsProcessor(Singleton):
         ws = wb.active
 
         provider_cn = self._get_column_cn(ws, u'供应商')
+        code_cn = self._get_column_cn(ws, u'供应商款号')
+
         # 写入数据
         for i in range(2, ws.max_row):
+            code = self._convert_possible_float_to_str(ws.cell(row=i, column=code_cn).value)
+            # 跳过汇总行
+            if code == None:
+                continue
+
             cell = ws.cell(row=i, column=provider_cn)
             v = cell.value
             for p in unknown_provider:
