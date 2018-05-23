@@ -40,3 +40,11 @@ def gen_all_orders_text(orders):
         s = s + gen_order_text(orders, p)
         s = s + '\n'
     return s
+
+
+def convert_possible_float_to_str(v):
+    '如果v是浮点，则转为字符串，否则原样返回'
+    if type(v).__name__ == 'float':
+        return str(int(v))
+    else:
+        return v

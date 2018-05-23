@@ -16,11 +16,10 @@ def get_store(all_friends, code):
     code：商家编码，如11152-茉莉
     '''
     for f in all_friends:
-        #print code
         try:
-            pat = r'^' + code
+            pat = r'^%s' % code
         except Exception as e:
-            print e.message + code
+            print "e.message: %s" % code
         remarkName = f['RemarkName']
         nickName = f['NickName']
         #print f

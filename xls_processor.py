@@ -59,12 +59,14 @@ class XlsProcessor(Singleton):
         for i in range(2, nrows):
             provider = self._convert_possible_float_to_str(ws.cell(row=i, column=provider_cn).value)
             code = self._convert_possible_float_to_str(ws.cell(row=i, column=code_cn).value)
-            # 跳过汇总行。会总行code为空
-            if provider == None or code == None:
-                continue
+
             if provider == "**" or provider == u"样衣":
                 # 截止到内容未**，或者“样衣”两个字的行
                 break
+
+            # 跳过汇总行。汇总行code为空
+            if provider == None or code == None:
+                continue
 
             order_line = {}
             order_line['code'] = code
