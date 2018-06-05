@@ -3,6 +3,7 @@ import itchat
 import re
 import sys
 import utils
+import time
 from xls_processor import XlsProcessor
 
 def get_store(all_friends, code):
@@ -88,6 +89,8 @@ while(True):
             if f != None:
                 order_text = utils.gen_order_text(orders, p)
                 itchat.send(order_text, toUserName=f['UserName'])
+                print u"已发送：" + p
+                time.sleep(0.5) # 加入间隔，以免微信报错 ：发送消息太频繁。
         break
     elif str == 'n' or str == "N":
         break
