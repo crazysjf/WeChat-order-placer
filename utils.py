@@ -42,9 +42,10 @@ def gen_all_orders_text(orders):
     return s
 
 
-def convert_possible_float_to_str(v):
-    '如果v是浮点，则转为字符串，否则原样返回'
-    if type(v).__name__ == 'float':
+def convert_possible_num_to_str(v):
+    '如果v是数字类型，则转为字符串，否则原样返回'
+    t = type(v).__name__
+    if t == 'float' or t == 'long' or  t == "int":
         return str(int(v))
     else:
         return v

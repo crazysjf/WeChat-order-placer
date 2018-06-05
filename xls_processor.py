@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 from openpyxl import load_workbook
 import openpyxl.styles as sty
+import utils
 
 class Singleton(object):
     _instance = None
@@ -18,13 +19,6 @@ class XlsProcessor(Singleton):
     #         if table_head[i] == name:
     #             return i
     #     return None
-
-    def _convert_possible_float_to_str(self, v):
-        '如果v是浮点，则转为字符串，否则原样返回'
-        if type(v).__name__ == 'float':
-            return str(int(v))
-        else:
-            return v
 
     def _get_column_cn(self, ws, name):
         for c in range(1, ws.max_column):
@@ -57,21 +51,22 @@ class XlsProcessor(Singleton):
         provider_order = []  # 单个档口的订单
 
         for i in range(2, nrows):
-            provider = self._convert_possible_float_to_str(ws.cell(row=i, column=provider_cn).value)
-            code = self._convert_possible_float_to_str(ws.cell(row=i, column=code_cn).value)
+            provider = utils.convert_possible_num_to_str(ws.cell(row=i, column=provider_cn).value)
+            code = utils.convert_possible_num_to_str(ws.cell(row=i, column=code_cn).value)
 
             if provider == "**" or provider == u"样衣":
                 # 截止到内容未**，或者“样衣”两个字的行
                 break
 
-            # 跳过汇总行。汇总行code为空
-            if provider == None or code == None:
+            # 跳过空行和汇总行。
+            if provider == None or provider.find(u'汇总') != -1:
                 continue
+            #print provider, code
 
             order_line = {}
             order_line['code'] = code
             order_line['spec'] = ws.cell(row=i, column=spec_cn).value
-            order_line['nr'] = self._convert_possible_float_to_str(ws.cell(row=i, column=nr_cn).value)
+            order_line['nr'] = utils.convert_possible_num_to_str(ws.cell(row=i, column=nr_cn).value)
 
             provider_order.append(order_line)
 
@@ -99,7 +94,7 @@ class XlsProcessor(Singleton):
 
         # 写入数据
         for i in range(2, ws.max_row):
-            code = self._convert_possible_float_to_str(ws.cell(row=i, column=code_cn).value)
+            code = utils.convert_possible_num_to_str(ws.cell(row=i, column=code_cn).value)
             # 跳过汇总行
             if code == None:
                 continue
