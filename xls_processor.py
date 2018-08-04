@@ -7,7 +7,8 @@ class Singleton(object):
     _instance = None
     def __new__(cls, *args, **kw):
         if not cls._instance:
-            cls._instance = super(Singleton, cls).__new__(cls, *args, **kw)
+            #cls._instance = super(Singleton, cls).__new__(cls, *args, **kw) # Python2
+            cls._instance = object.__new__(cls)  # python3
         return cls._instance
 
 class XlsProcessor(Singleton):
@@ -70,7 +71,7 @@ class XlsProcessor(Singleton):
 
             provider_order.append(order_line)
 
-            if orders.has_key(provider):
+            if provider in orders:
                 orders[provider].append(order_line)
             else:
                 orders[provider] = [order_line]
@@ -116,7 +117,7 @@ if __name__ == "__main__":
     xp = XlsProcessor('./test.xlsx')
     orders = xp.gen_orders()
     import  utils
-    print utils.gen_all_orders_text(orders)
+    print(utils.gen_all_orders_text(orders))
 
     up = [u'53d123', u'孙劲飞']
-    print xp.annotate_unknown_providers(up)
+    print(xp.annotate_unknown_providers(up))

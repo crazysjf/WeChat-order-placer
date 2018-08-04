@@ -20,7 +20,7 @@ def get_store(all_friends, code):
         try:
             pat = r'^%s' % code
         except Exception as e:
-            print "e.message: %s" % code
+            print("e.message: %s" % code)
         remarkName = f['RemarkName']
         nickName = f['NickName']
         #print f
@@ -37,17 +37,17 @@ def get_store(all_friends, code):
 
 def print_friend(f):
     if f == None:
-        print '无此好友'
+        print('无此好友')
         return
     for k in f.keys():
-        print k, ":", f[k]
+        print(k, ":", f[k])
 
 
 def place_order():
-    print "order placed"
+    print("order placed")
 
 if len(sys.argv) == 1:
-    print u"Error： need xls file as parameter."
+    print( u"Error： need xls file as parameter.")
     exit(-1)
     #order_xls_file = r'D:\projects\20180421-WeChat-order-placer\src\4.21.xlsx'
     #order_xls_file = r'D:\projects\20180421-WeChat-order-plxxacer\src\testxx.xlsx'
@@ -70,26 +70,26 @@ for p in orders.keys():
     if f == None:
         unknown_providers.append(p)
 
-print u'报单内容：'
-print utils.gen_all_orders_text(orders)
-print
+print(u'报单内容：')
+print(utils.gen_all_orders_text(orders))
+print()
 
-print u'以下供应商未找到：'
+print(u'以下供应商未找到：')
 for p in unknown_providers:
-    print p
-print
+    print(p)
+print()
 
 
 while(True):
     #TODO: Continue这行只能用英文，用中文或者unicode会导致powershell中执行异常
-    str = raw_input("Continue? (y/N)")
+    str = input("Continue? (y/N)")
     if str == 'y' or str == 'Y':
         for p in orders.keys():
             f = get_store(friends, p)
             if f != None:
                 order_text = utils.gen_order_text(orders, p)
                 itchat.send(order_text, toUserName=f['UserName'])
-                print u"已发送：" + p
+                print(u"已发送：" + p)
                 time.sleep(0.5) # 加入间隔，以免微信报错 ：发送消息太频繁。
         break
     elif str == 'n' or str == "N":
@@ -99,6 +99,6 @@ while(True):
     ret = xls_processor.annotate_unknown_providers(unknown_providers)
     if ret == True:
         break
-    str = raw_input("Annotaion failed. File may be open in other application. Retry? (Y/n)")
+    str = input("Annotaion failed. File may be open in other application. Retry? (Y/n)")
     if str == 'n' or str == 'N':
         break
