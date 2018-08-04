@@ -3,6 +3,7 @@ import sys
 import sys
 import getopt
 import business_logic
+import xls_processor
 
 def usage():
     print('''test.py [options]
@@ -43,6 +44,8 @@ def help():
 """命令帮助：
  h: 显示该帮助
  p: 报单
+ ye: 显示昨天到货异常（yestoday exceptions）
+ te: 显示今天到货异常(today exceptions)
  q: 退出
  """)
 
@@ -54,6 +57,9 @@ while True:
     elif cmd == "p":
         business_logic.place_order(today_order_file)
         exit()
+    elif cmd == "ye":
+        yo = xls_processor.XlsProcessor(yestoday_order_file)
+        yo.get_order_exceptions()
     elif cmd == "q":
         exit()
     else:

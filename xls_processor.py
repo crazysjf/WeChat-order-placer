@@ -2,16 +2,17 @@
 from openpyxl import load_workbook
 import openpyxl.styles as sty
 import utils
+import re
+#
+# class Singleton(object):
+#     _instance = None
+#     def __new__(cls, *args, **kw):
+#         if not cls._instance:
+#             #cls._instance = super(Singleton, cls).__new__(cls, *args, **kw) # Python2
+#             cls._instance = object.__new__(cls)  # python3
+#         return cls._instance
 
-class Singleton(object):
-    _instance = None
-    def __new__(cls, *args, **kw):
-        if not cls._instance:
-            #cls._instance = super(Singleton, cls).__new__(cls, *args, **kw) # Python2
-            cls._instance = object.__new__(cls)  # python3
-        return cls._instance
-
-class XlsProcessor(Singleton):
+class XlsProcessor():
     def __init__(self, f):
         self._f = f
 
@@ -21,12 +22,28 @@ class XlsProcessor(Singleton):
     #             return i
     #     return None
 
-    def _get_column_cn(self, ws, name):
-        for c in range(1, ws.max_column):
-            v = ws.cell(row = 1, column=c).value
+    def _open(self):
+        self.wb = load_workbook(self._f)
+        self.ws = self.wb.active
+        self.nrows = self.ws.max_row
+
+    def _close(self):
+        self.wb.close()
+        self.wb = None
+        self.ws = None
+        self.nrows = 0
+
+    def _save(self):
+        self.wb.save(self._f)
+
+    def _get_column_cn(self, name):
+        for c in range(1, self.ws.max_column):
+            v = self.ws.cell(row = 1, column=c).value
             if v == name:
                 return c
         return None
+
+
 
     def gen_orders(self):
         '''
@@ -39,21 +56,23 @@ class XlsProcessor(Singleton):
         ...
         }
         '''
-        wb = load_workbook(self._f)
-        ws = wb.active
-        nrows = ws.max_row
+        # wb = load_workbook(self._f)
+        # ws = wb.active
+        # nrows = ws.max_row
 
-        provider_cn = self._get_column_cn(ws, u'供应商')
-        code_cn = self._get_column_cn(ws, u'供应商款号')
-        spec_cn = self._get_column_cn(ws, u'颜色规格')
-        nr_cn = self._get_column_cn(ws, u'数量')
+        self._open()
+
+        provider_cn = self._get_column_cn( u'供应商')
+        code_cn = self._get_column_cn(u'供应商款号')
+        spec_cn = self._get_column_cn(u'颜色规格')
+        nr_cn = self._get_column_cn(u'数量')
 
         orders = {}  # 解析之后的所有订单，键值为档口名
         provider_order = []  # 单个档口的订单
 
-        for i in range(2, nrows):
-            provider = utils.convert_possible_num_to_str(ws.cell(row=i, column=provider_cn).value)
-            code = utils.convert_possible_num_to_str(ws.cell(row=i, column=code_cn).value)
+        for i in range(2, self.nrows):
+            provider = utils.convert_possible_num_to_str(self.ws.cell(row=i, column=provider_cn).value)
+            code = utils.convert_possible_num_to_str(self.ws.cell(row=i, column=code_cn).value)
 
             if provider == "**" or provider == u"样衣":
                 # 截止到内容未**，或者“样衣”两个字的行
@@ -68,8 +87,8 @@ class XlsProcessor(Singleton):
 
             order_line = {}
             order_line['code'] = code
-            order_line['spec'] = ws.cell(row=i, column=spec_cn).value
-            order_line['nr'] = utils.convert_possible_num_to_str(ws.cell(row=i, column=nr_cn).value)
+            order_line['spec'] = self.ws.cell(row=i, column=spec_cn).value
+            order_line['nr'] = utils.convert_possible_num_to_str(self.ws.cell(row=i, column=nr_cn).value)
 
             provider_order.append(order_line)
 
@@ -78,7 +97,7 @@ class XlsProcessor(Singleton):
             else:
                 orders[provider] = [order_line]
 
-        wb.close()
+        self._close()
         return orders
 
     def annotate_unknown_providers(self, unknown_provider):
@@ -89,31 +108,71 @@ class XlsProcessor(Singleton):
         :param unknown_provider: 
         :return: 
         '''
-        wb = load_workbook(self._f)
-        ws = wb.active
+        self._open()
 
-        provider_cn = self._get_column_cn(ws, u'供应商')
-        code_cn = self._get_column_cn(ws, u'供应商款号')
+        provider_cn = self._get_column_cn(u'供应商')
+        code_cn = self._get_column_cn(u'供应商款号')
 
         # 写入数据
-        for i in range(2, ws.max_row):
-            code = utils.convert_possible_num_to_str(ws.cell(row=i, column=code_cn).value)
+        for i in range(2, self.nrows):
+            code = utils.convert_possible_num_to_str(self.ws.cell(row=i, column=code_cn).value)
             # 跳过汇总行
             if code == None:
                 continue
 
-            cell = ws.cell(row=i, column=provider_cn)
+            cell = self.ws.cell(row=i, column=provider_cn)
             v = cell.value
             for p in unknown_provider:
                 if v == p:
                     cell.fill = sty.PatternFill(fill_type='solid', fgColor="ff6347")
         try:
-            wb.save(self._f)
+            self._save()
         except IOError:
             return False
 
-        wb.close()
+        self._close()
         return True
+
+
+    def get_order_exceptions(self):
+        '''获取报单异常，包括：
+        欠货，
+        其他
+        '''
+        # 处理欠，报，换等几种情况
+        self._open()
+        provider_cn = self._get_column_cn(u'供应商')
+        code_cn = self._get_column_cn(u'供应商款号')
+        spec_cn = self._get_column_cn(u'颜色规格')
+        nr_cn = self._get_column_cn(u'数量')
+        payed_cn = self._get_column_cn("实付")
+        received_cn = self._get_column_cn("实拿")
+
+        for i in range(2, self.nrows):
+            provider = utils.convert_possible_num_to_str(self.ws.cell(row=i, column=provider_cn).value)
+            code = utils.convert_possible_num_to_str(self.ws.cell(row=i, column=code_cn).value)
+            spec = self.ws.cell(row=i, column=spec_cn).value
+
+            # 截止到内容未**，或者“样衣”两个字的行
+            if provider == "**" or provider == u"样衣":
+                break
+
+            # 跳过空行和汇总行。
+            if provider == None or \
+                            provider.find(u'汇总') != -1 or \
+                            provider.find(u'总计') != -1:
+                continue
+
+            nr =  utils.convert_possible_num_to_str(self.ws.cell(row=i, column=nr_cn).value)
+            payed = utils.convert_possible_num_to_str(self.ws.cell(row=i, column=payed_cn).value)
+            received = utils.convert_possible_num_to_str(self.ws.cell(row=i, column=received_cn).value)
+            e = utils.calc_received_exceptions(nr, payed, received)
+            if e != 0:
+                print(provider, code, spec, e)
+
+
+        self._close()
+
 
 if __name__ == "__main__":
     xp = XlsProcessor('./test.xlsx')
