@@ -1,107 +1,62 @@
 # -*- coding: utf-8 -*-
-import itchat
-import re
 import sys
-import utils
-import time
-from xls_processor import XlsProcessor
+import sys
+import getopt
+import business_logic
 
-def get_store(all_friends, code):
-    '''
-    itchat提供的search_friends并没有模糊匹配的功能，需要自己实现。
-    根据code商家编码来查找好友并返回。
-    未找到返回None。
-    TODO：需要处理多个匹配的情况
-    只要all_friends里面有好友的remarkName前面部分和这个匹配(忽略大小写)，即视为找到
-    all_friends: itchat.get_friends()获取的所有好友的列表
-    code：商家编码，如11152-茉莉
-    '''
-    for f in all_friends:
-        try:
-            pat = r'^%s' % code
-        except Exception as e:
-            print("e.message: %s" % code)
-        remarkName = f['RemarkName']
-        nickName = f['NickName']
-        #print f
-        #print remarkName
-        m1 = re.match(pat, remarkName, re.IGNORECASE)
-        m2 = re.match(pat, nickName, re.IGNORECASE)
+def usage():
+    print('''test.py [options]
+options:
+ -h, --help         help
+ -t <当日报表>,      指定当日报表文件
+ -y <昨日报表>,      指定昨日报表文件
+ 
+ 如果没有指任何报表文件，则自动分析。''')
 
-        if m1 != None or m2 != None:
-            # 备注和昵称两个左右匹配了一个就算找到
-            return f
+try:
+    options,args = getopt.getopt(sys.argv[1:],"hy:t:")
+except getopt.GetoptError:
+    usage()
+    sys.exit()
 
-    return None
+today_order_file = None
+yestoday_order_file = None
 
+for name,value in options:
+    if name in ("-h",):
+        usage()
+    if name in ("-t",):
+        today_order_file = value
+    if name in ("-y",):
+        yestoday_order_file = value
 
-def print_friend(f):
-    if f == None:
-        print('无此好友')
-        return
-    for k in f.keys():
-        print(k, ":", f[k])
+print("当日报表：", today_order_file)
+print("昨日报表：", yestoday_order_file)
 
+if today_order_file == None or yestoday_order_file == None:
+    print("参数不全")
+    usage()
+    exit()
 
-def place_order():
-    print("order placed")
-
-if len(sys.argv) == 1:
-    print( u"Error： need xls file as parameter.")
-    exit(-1)
-    #order_xls_file = r'D:\projects\20180421-WeChat-order-placer\src\4.21.xlsx'
-    #order_xls_file = r'D:\projects\20180421-WeChat-order-plxxacer\src\testxx.xlsx'
-else:
-    order_xls_file = sys.argv[1]
-
-xls_processor = XlsProcessor(order_xls_file)
-orders = xls_processor.gen_orders()
-
-itchat.auto_login(hotReload=True, enableCmdQR=True)
-
-friends = itchat.get_friends()
+def help():
+    print(
+"""命令帮助：
+ h: 显示该帮助
+ p: 报单
+ q: 退出
+ """)
 
 
+while True:
+    cmd = input("输入命令(h：帮助)：")
+    if cmd == "h":
+        help()
+    elif cmd == "p":
+        business_logic.place_order(today_order_file)
+        exit()
+    elif cmd == "q":
+        exit()
+    else:
+        help()
 
-unknown_providers = []
-for p in orders.keys():
 
-    f = get_store(friends, p)
-    if f == None:
-        unknown_providers.append(p)
-
-print(u'报单内容：')
-print(utils.gen_all_orders_text(orders))
-print()
-print(u'共 %d 家' % len(orders.keys()))
-print()
-
-print(u'以下供应商未找到：')
-for p in unknown_providers:
-    print(p)
-print()
-print(u'共 %d 家' % len(unknown_providers))
-print()
-
-while(True):
-    #TODO: Continue这行只能用英文，用中文或者unicode会导致powershell中执行异常
-    str = input("Continue? (y/N)")
-    if str == 'y' or str == 'Y':
-        for p in orders.keys():
-            f = get_store(friends, p)
-            if f != None:
-                order_text = utils.gen_order_text(orders, p)
-                itchat.send(order_text, toUserName=f['UserName'])
-                print(u"已发送：" + p)
-                time.sleep(0.5) # 加入间隔，以免微信报错 ：发送消息太频繁。
-        break
-    elif str == 'n' or str == "N":
-        break
-
-while(True):
-    ret = xls_processor.annotate_unknown_providers(unknown_providers)
-    if ret == True:
-        break
-    str = input("Annotaion failed. File may be open in other application. Retry? (Y/n)")
-    if str == 'n' or str == 'N':
-        break
