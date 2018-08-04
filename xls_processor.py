@@ -60,7 +60,9 @@ class XlsProcessor(Singleton):
                 break
 
             # 跳过空行和汇总行。
-            if provider == None or provider.find(u'汇总') != -1:
+            if provider == None or \
+                            provider.find(u'汇总') != -1 or \
+                            provider.find(u'总计') != -1:
                 continue
             #print provider, code
 

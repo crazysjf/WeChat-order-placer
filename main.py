@@ -73,12 +73,15 @@ for p in orders.keys():
 print(u'报单内容：')
 print(utils.gen_all_orders_text(orders))
 print()
+print(u'共 %d 家' % len(orders.keys()))
+print()
 
 print(u'以下供应商未找到：')
 for p in unknown_providers:
     print(p)
 print()
-
+print(u'共 %d 家' % len(unknown_providers))
+print()
 
 while(True):
     #TODO: Continue这行只能用英文，用中文或者unicode会导致powershell中执行异常
