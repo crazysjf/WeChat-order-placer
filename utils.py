@@ -53,7 +53,7 @@ def print_exception_summary(r):
         lines = r[p]
         for l in lines:
             e_cnt = e_cnt + 1
-            print("%s, %s, %s, %s" % (p, l['code'], l['spec'], l['nr']))
+            print("%s, %s, %s, 欠%s" % (p, l['code'], l['spec'], l['nr']))
         print("-------------------")
     print("档口数： % s，异常数： % s\n" % (len(r.keys()), e_cnt))
 
@@ -223,14 +223,11 @@ def calc_received_exceptions(nr_s, payed_s, received_s):
     if payed == 'OK':
         payed = ordered
 
-    if received == 'OK':
-        return (total, 0) # 实拿为空或者没有问题，则无异常
-    elif owed == 0 and received == None:
-        return (total, 0) # 无欠货的情况下， 为空表示异常
+    if received == 'OK' or received == None:
+        return (total, 0) # 实拿没有问题，或者为空，则无异常
+    # elif owed == 0 and received == None:
+    #     return (total, 0) # 无欠货的情况下， 为空表示异常
     else:
-        # 其余情况recevied为空视为0
-        if received == None:
-            received = 0
         balance = owed + payed - received
         return (total, balance)
 
