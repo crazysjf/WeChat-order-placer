@@ -3,6 +3,7 @@ import itchat
 import utils
 import time
 
+
 def place_order(order_file):
     '''
     报单
@@ -25,16 +26,12 @@ def place_order(order_file):
 
     print(u'报单内容：')
     print(utils.gen_all_orders_text(orders))
-    print()
-    print(u'共 %d 家' % len(orders.keys()))
-    print()
+    print(u'\n共 %d 家\n' % len(orders.keys()))
 
     print(u'以下供应商未找到：')
     for p in unknown_providers:
         print(p)
-    print()
-    print(u'共 %d 家' % len(unknown_providers))
-    print()
+    print('\n共 %d 家\n' % len(unknown_providers))
 
     while(True):
         #TODO: Continue这行只能用英文，用中文或者unicode会导致powershell中执行异常
@@ -57,4 +54,50 @@ def place_order(order_file):
             break
         str = input("Annotaion failed. File may be open in other application. Retry? (Y/n)")
         if str == 'n' or str == 'N':
+            break
+
+
+def send_today_exceptions(today_order_file):
+    '''
+    发送当天到货异常
+    
+    :param e: 异常字典
+    :return: 
+    '''
+    if itchat.check_login() != "200":
+        itchat.auto_login(hotReload=True, enableCmdQR=True)
+
+    friends = itchat.get_friends()
+
+    to = XlsProcessor(today_order_file)
+    e = to.calc_order_exceptions()
+
+    unknown_providers = []
+    for p in e.keys():
+        f = utils.get_store(friends, p)
+        if f == None:
+            unknown_providers.append(p)
+
+    print('发送内容：')
+    print(utils.gen_all_exception_text(e))
+    print('\n共 %d 家\n' % len(e.keys()))
+
+    print('以下供应商未找到：')
+    for p in unknown_providers:
+        print(p)
+    print('\n共 %d 家\n' % len(unknown_providers))
+
+    while(True):
+        #TODO: Continue这行只能用英文，用中文或者unicode会导致powershell中执行异常
+        str = input("Continue? (y/N)")
+        if str == 'y' or str == 'Y':
+            for p in e.keys():
+                f = utils.get_store(friends, p)
+                if f != None:
+                    order_text = utils.gen_exception_text(e, p)
+                    itchat.send(order_text, toUserName=f['UserName'])
+                    print(u"已发送：" + p)
+                    time.sleep(0.5) # 加入间隔，以免微信报错 ：发送消息太频繁。
+            break
+        elif str == 'n' or str == "N":
             break

@@ -3,7 +3,13 @@ from datetime import date
 import re
 
 def gen_order_text(orders, p):
-    '生成单个档口的报单文本'
+    '''
+    生成单个档口的报单文本
+    
+    :param orders: 报单字典，包括所有档口数据
+    :param p: 所要生成报单文本的档口
+    :return: 
+    '''
     text = ''
     try:
         t = date.today()  # 仅获取日期
@@ -33,12 +39,70 @@ def gen_order_text(orders, p):
         text = '报单生成错误'
     return text
 
+def print_exception_summary(r):
+    '''
+    打印到货异常汇总。
+    :param r: 异常字典
+    :return: 
+    '''
+    print("\n拿货异常：")
+    print("-------------------")
+
+    e_cnt = 0
+    for p in r.keys():
+        lines = r[p]
+        for l in lines:
+            e_cnt = e_cnt + 1
+            print("%s, %s, %s, %s" % (p, l['code'], l['spec'], l['nr']))
+        print("-------------------")
+    print("档口数： % s，异常数： % s\n" % (len(r.keys()), e_cnt))
 
 
 def gen_all_orders_text(orders):
     s = u''
     for p in orders.keys():
         s = s + gen_order_text(orders, p)
+        s = s + '\n'
+    return s
+
+
+def gen_exception_text(e, p):
+    '''
+     生成单个档口的到货异常文本
+
+     :param orders: 到货异常字典，包括所有档口数据
+     :param p: 所要生成文本的档口
+     :return: 
+     '''
+    text = ''
+    try:
+        t = date.today()  # 仅获取日期
+        text = u'到货及欠货确认\n日期：%s月%s日\n档口：%s\n\n' % (t.month, t.day, p)
+        text = text + "------------------------------\n"
+        o = e[p]
+        last_code = 'dummy'
+        for i, l in enumerate(o):
+            code = l['code']
+            s = ""
+            # 分隔款式
+            if code != last_code and i != 0:
+                s = s + "------\n"
+
+            s = s + "%-5s,\t%-10s,\t到%s件，欠%s件\n" % (code, l['spec'], l['total'] - l['nr'], l['nr'])
+            text = text + s
+            last_code = code
+        text = text + "------------------------------\n\n"
+        text = text + " - 有异议请及时回复\n"
+        text = text + " - 无异议无需回复\n"
+
+    except:
+        text = '报单生成错误'
+    return text
+
+def gen_all_exception_text(e):
+    s = ''
+    for p in e.keys():
+        s = s + gen_exception_text(e, p)
         s = s + '\n'
     return s
 
@@ -119,7 +183,7 @@ def _parse_payed_received_string(s):
     解析实付和实拿字符串。
     数字表示数量
     x,X表示0
-    None表示
+    None表示空
     其他表示无异常
     :param nr: 
     :return: 数字：实际数量，None： 空， 'OK'：无异常 
@@ -146,23 +210,29 @@ def calc_received_exceptions(nr_s, payed_s, received_s):
     :param nr: 
     :param payed: 实付，可能为空，数字，X，或其他
     :param received: 实拿，可能为空，数字，X，或其他
-    :return: 正数 - 档口欠我们，0-平衡，负数：我们欠档口
+    :return: （totoal, owed）,total:总计应拿，owed：欠货，正数 - 档口欠我们，0-平衡，负数：我们欠档口
     '''
 
     ordered, owed = _parse_order_string(nr_s)
     payed = _parse_payed_received_string(payed_s)
     received = _parse_payed_received_string(received_s)
+    total = ordered + owed
 
     if payed == None:
         payed = 0
     if payed == 'OK':
         payed = ordered
 
-    if received == None or received == 'OK':
-        return 0 # 实拿为空或者没有问题，则无异常
+    if received == 'OK':
+        return (total, 0) # 实拿为空或者没有问题，则无异常
+    elif owed == 0 and received == None:
+        return (total, 0) # 无欠货的情况下， 为空表示异常
     else:
+        # 其余情况recevied为空视为0
+        if received == None:
+            received = 0
         balance = owed + payed - received
-        return balance
+        return (total, balance)
 
 if __name__ == "__main__":
     s = "\\"

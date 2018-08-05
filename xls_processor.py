@@ -3,14 +3,6 @@ from openpyxl import load_workbook
 import openpyxl.styles as sty
 import utils
 import re
-#
-# class Singleton(object):
-#     _instance = None
-#     def __new__(cls, *args, **kw):
-#         if not cls._instance:
-#             #cls._instance = super(Singleton, cls).__new__(cls, *args, **kw) # Python2
-#             cls._instance = object.__new__(cls)  # python3
-#         return cls._instance
 
 class XlsProcessor():
     def __init__(self, f):
@@ -134,7 +126,7 @@ class XlsProcessor():
         return True
 
 
-    def get_order_exceptions(self):
+    def calc_order_exceptions(self):
         '''获取报单异常，包括：
         欠货，
         其他
@@ -147,6 +139,8 @@ class XlsProcessor():
         nr_cn = self._get_column_cn(u'数量')
         payed_cn = self._get_column_cn("实付")
         received_cn = self._get_column_cn("实拿")
+
+        result = {}
 
         for i in range(2, self.nrows):
             provider = utils.convert_possible_num_to_str(self.ws.cell(row=i, column=provider_cn).value)
@@ -166,12 +160,15 @@ class XlsProcessor():
             nr =  utils.convert_possible_num_to_str(self.ws.cell(row=i, column=nr_cn).value)
             payed = utils.convert_possible_num_to_str(self.ws.cell(row=i, column=payed_cn).value)
             received = utils.convert_possible_num_to_str(self.ws.cell(row=i, column=received_cn).value)
-            e = utils.calc_received_exceptions(nr, payed, received)
+            total, e = utils.calc_received_exceptions(nr, payed, received)
             if e != 0:
-                print(provider, code, spec, e)
-
-
+                line = {'code':code, 'spec':spec, 'nr': e, 'total':total}
+                if not provider in result:
+                    result[provider] = [line]
+                else:
+                    result[provider].append(line)
         self._close()
+        return result
 
 
 if __name__ == "__main__":

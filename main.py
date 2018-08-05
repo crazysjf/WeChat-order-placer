@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-import sys
+import utils
 import sys
 import getopt
 import business_logic
@@ -44,8 +44,11 @@ def help():
 """命令帮助：
  h: 显示该帮助
  p: 报单
- ye: 显示昨天到货异常（yestoday exceptions）
+ ye: 显示昨天到货异常(yestoday exceptions)
+ iye: 在当天报表里面插入昨天到货异常(insert yestoday exceptions)
  te: 显示今天到货异常(today exceptions)
+ ste: 发送今天到货异常(send today exceptions)
+ 
  q: 退出
  """)
 
@@ -59,7 +62,20 @@ while True:
         exit()
     elif cmd == "ye":
         yo = xls_processor.XlsProcessor(yestoday_order_file)
-        yo.get_order_exceptions()
+        r = yo.calc_order_exceptions()
+        utils.print_exception_summary(r)
+
+    elif cmd == "te":
+        to = xls_processor.XlsProcessor(today_order_file)
+        r = to.calc_order_exceptions()
+        utils.print_exception_summary(r)
+
+    elif cmd == "ste":
+        business_logic.send_today_exceptions(today_order_file)
+
+    elif cmd == "iye":
+        pass
+
     elif cmd == "q":
         exit()
     else:
