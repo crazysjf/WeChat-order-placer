@@ -34,7 +34,7 @@ for name,value in options:
 print("当日报表：", today_order_file)
 print("昨日报表：", yestoday_order_file)
 
-if today_order_file == None or yestoday_order_file == None:
+if today_order_file == None and yestoday_order_file == None:
     print("参数不全")
     usage()
     exit()
