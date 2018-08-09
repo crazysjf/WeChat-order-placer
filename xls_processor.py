@@ -160,9 +160,9 @@ class XlsProcessor():
             nr =  utils.convert_possible_num_to_str(self.ws.cell(row=i, column=nr_cn).value)
             payed = utils.convert_possible_num_to_str(self.ws.cell(row=i, column=payed_cn).value)
             received = utils.convert_possible_num_to_str(self.ws.cell(row=i, column=received_cn).value)
-            total, e = utils.calc_received_exceptions(nr, payed, received)
+            _, e = utils.calc_received_exceptions(nr, payed, received)
             if e != 0:
-                line = {'code':code, 'spec':spec, 'nr': e, 'total':total}
+                line = {'code':code, 'spec':spec, 'nr': e, 'received':received}
                 if not provider in result:
                     result[provider] = [line]
                 else:

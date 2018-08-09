@@ -53,7 +53,7 @@ def print_exception_summary(r):
         lines = r[p]
         for l in lines:
             e_cnt = e_cnt + 1
-            print("%s, %s, %s, 欠%s" % (p, l['code'], l['spec'], l['nr']))
+            print("%s, %s, %s, 到%s欠%s" % (p, l['code'], l['spec'], l['received'], l['nr']))
         print("-------------------")
     print("档口数： % s，异常数： % s\n" % (len(r.keys()), e_cnt))
 
@@ -88,7 +88,7 @@ def gen_exception_text(e, p):
             if code != last_code and i != 0:
                 s = s + "------\n"
 
-            s = s + "%-5s,\t%-10s,\t到%s件，欠%s件\n" % (code, l['spec'], l['total'] - l['nr'], l['nr'])
+            s = s + "%-5s,\t%-10s,\t到%s件，欠%s件\n" % (code, l['spec'], l['received'], l['nr'])
             text = text + s
             last_code = code
         text = text + "------------------------------\n\n"
@@ -216,7 +216,7 @@ def calc_received_exceptions(nr_s, payed_s, received_s):
     ordered, owed = _parse_order_string(nr_s)
     payed = _parse_payed_received_string(payed_s)
     received = _parse_payed_received_string(received_s)
-    total = ordered + owed
+    #total = ordered + owed
 
     if payed == None:
         payed = 0
@@ -224,12 +224,12 @@ def calc_received_exceptions(nr_s, payed_s, received_s):
         payed = ordered
 
     if received == 'OK' or received == None:
-        return (total, 0) # 实拿没有问题，或者为空，则无异常
+        return (received, 0) # 实拿没有问题，或者为空，则无异常
     # elif owed == 0 and received == None:
     #     return (total, 0) # 无欠货的情况下， 为空表示异常
     else:
         balance = owed + payed - received
-        return (total, balance)
+        return (received, balance)
 
 if __name__ == "__main__":
     s = "\\"
