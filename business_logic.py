@@ -2,7 +2,7 @@ from xls_processor import XlsProcessor
 import itchat
 import utils
 import time
-
+import config
 
 def place_order(order_file):
     '''
@@ -101,3 +101,19 @@ def send_today_exceptions(today_order_file):
             break
         elif str == 'n' or str == "N":
             break
+
+def send_order_file(today_order_file):
+    '''
+    发送报表给采购
+    :param today_order_file: 
+    :return: 
+    '''
+    if itchat.check_login() != "200":
+        itchat.auto_login(hotReload=True, enableCmdQR=True)
+
+    friends = itchat.get_friends()
+
+    purchaser = config.puerchaser_nickname
+    f = utils.get_store(friends, purchaser)
+    itchat.send_file(today_order_file, toUserName=f['UserName'])
+    print("已发送：%s 至 %s" % (today_order_file, purchaser))

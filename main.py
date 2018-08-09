@@ -48,7 +48,7 @@ def help():
  iye: 在当天报表里面插入昨天到货异常(insert yestoday exceptions)
  te: 显示今天到货异常(today exceptions)
  ste: 发送今天到货异常(send today exceptions)
- 
+ sof: 发送报表给采购(send order file)
  q: 退出
  """)
 
@@ -57,9 +57,11 @@ while True:
     cmd = input("输入命令(h：帮助)：")
     if cmd == "h":
         help()
+
     elif cmd == "p":
         business_logic.place_order(today_order_file)
         exit()
+
     elif cmd == "ye":
         yo = xls_processor.XlsProcessor(yestoday_order_file)
         r = yo.calc_order_exceptions()
@@ -76,8 +78,13 @@ while True:
     elif cmd == "iye":
         pass
 
+    elif cmd == "sof":
+        business_logic.send_order_file(today_order_file)
+
+
     elif cmd == "q":
         exit()
+
     else:
         help()
 
