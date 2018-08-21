@@ -3,8 +3,12 @@ from openpyxl import load_workbook
 import openpyxl.styles as sty
 import utils
 import re
+import constants
 
 class XlsProcessor():
+    # 修改后的填充色
+    MODIFICARTION_FILL = sty.PatternFill(fill_type='solid', fgColor=constants.XLS_FG_COLOR_WARNING)
+
     def __init__(self, f):
         self._f = f
 
@@ -18,6 +22,15 @@ class XlsProcessor():
         self.wb = load_workbook(self._f)
         self.ws = self.wb.active
         self.nrows = self.ws.max_row
+        self.provider_cn = self._get_column_cn(u'供应商')
+        self.code_cn = self._get_column_cn(u'供应商款号')
+        self.spec_cn = self._get_column_cn(u'颜色规格')
+        self.nr_cn = self._get_column_cn(u'数量')
+        self.payed_cn = self._get_column_cn("实付")
+        self.received_cn = self._get_column_cn("实拿")
+        self.notation_cn = self._get_column_cn("商品备注")
+        self.sum_cn = self._get_column_cn("金额")
+
 
     def _close(self):
         self.wb.close()
@@ -29,7 +42,7 @@ class XlsProcessor():
         self.wb.save(self._f)
 
     def _get_column_cn(self, name):
-        for c in range(1, self.ws.max_column):
+        for c in range(1, self.ws.max_column + 1):
             v = self.ws.cell(row = 1, column=c).value
             if v == name:
                 return c
@@ -130,22 +143,31 @@ class XlsProcessor():
         '''获取报单异常，包括：
         欠货，
         其他
+        返回： 格式：
+        {
+        档口1: [{code: 商品编码1， spec: 规格1, nr: 欠货数1,  'received':到货数1, 'notation': 备注, }，
+                {code: 商品编码2， spec: 规格2, nr: 欠货数2, 'received':到货数2... ],
+        档口2: [{code: 商品编码1， spec: 规格1, nr: 欠货数1,'received':到货数1, 'notation':备注},
+                {code: 商品编码2， spec: 规格2, nr: 欠货数2, 'received':到货数2... ],
+        ...
+        }
+        如果有'notation'键，表明备注需要发送给档口
         '''
         # 处理欠，报，换等几种情况
         self._open()
-        provider_cn = self._get_column_cn(u'供应商')
-        code_cn = self._get_column_cn(u'供应商款号')
-        spec_cn = self._get_column_cn(u'颜色规格')
-        nr_cn = self._get_column_cn(u'数量')
-        payed_cn = self._get_column_cn("实付")
-        received_cn = self._get_column_cn("实拿")
+        # provider_cn = self._get_column_cn(u'供应商')
+        # code_cn = self._get_column_cn(u'供应商款号')
+        # spec_cn = self._get_column_cn(u'颜色规格')
+        # nr_cn = self._get_column_cn(u'数量')
+        # payed_cn = self._get_column_cn("实付")
+        # received_cn = self._get_column_cn("实拿")
 
         result = {}
 
         for i in range(2, self.nrows):
-            provider = utils.convert_possible_num_to_str(self.ws.cell(row=i, column=provider_cn).value)
-            code = utils.convert_possible_num_to_str(self.ws.cell(row=i, column=code_cn).value)
-            spec = self.ws.cell(row=i, column=spec_cn).value
+            provider = utils.convert_possible_num_to_str(self.ws.cell(row=i, column=self.provider_cn).value)
+            code = utils.convert_possible_num_to_str(self.ws.cell(row=i, column=self.code_cn).value)
+            spec = self.ws.cell(row=i, column=self.spec_cn).value
 
             # 截止到内容未**，或者“样衣”两个字的行
             if provider == "**" or provider == u"样衣":
@@ -157,12 +179,21 @@ class XlsProcessor():
                             provider.find(u'总计') != -1:
                 continue
 
-            nr =  utils.convert_possible_num_to_str(self.ws.cell(row=i, column=nr_cn).value)
-            payed = utils.convert_possible_num_to_str(self.ws.cell(row=i, column=payed_cn).value)
-            received = utils.convert_possible_num_to_str(self.ws.cell(row=i, column=received_cn).value)
+            nr =  utils.convert_possible_num_to_str(self.ws.cell(row=i, column=self.nr_cn).value)
+            payed = utils.convert_possible_num_to_str(self.ws.cell(row=i, column=self.payed_cn).value)
+            received = utils.convert_possible_num_to_str(self.ws.cell(row=i, column=self.received_cn).value)
+            abnormal_cn = self.sum_cn + 1 # 异常列。该列如果不为空，表示有异常，备注需要发送给档口
+            abnormal = utils.convert_possible_num_to_str(self.ws.cell(row=i, column=abnormal_cn).value)
+            notation = utils.convert_possible_num_to_str(self.ws.cell(row=i, column=self.notation_cn).value)
             _, e = utils.calc_received_exceptions(nr, payed, received)
-            if e != 0:
+
+            # if abnormal != None:
+            #     print('标记异常', i, notation)
+
+            if e != 0 or abnormal != None:
                 line = {'code':code, 'spec':spec, 'nr': e, 'received':received}
+                if abnormal != None:
+                    line['notation'] = notation
                 if not provider in result:
                     result[provider] = [line]
                 else:
@@ -170,6 +201,147 @@ class XlsProcessor():
         self._close()
         return result
 
+    def _do_insertion(self, line_nr, provider, line):
+        line_nr = line_nr + 1
+        self.ws.insert_rows(line_nr)
+        cell_p = self.ws.cell(row=line_nr, column=self.provider_cn)
+        cell_c = self.ws.cell(row=line_nr, column=self.code_cn)
+        cell_s = self.ws.cell(row=line_nr, column=self.spec_cn)
+        cell_n = self.ws.cell(row=line_nr, column=self.nr_cn)
+
+        cell_p.value = provider
+        cell_c.value = line['code']
+        cell_s.value = line['spec']
+        cell_n.value = utils.gen_text_for_one_exception_line(line, simplified=True)
+
+
+        cell_p.fill = self.MODIFICARTION_FILL
+        cell_c.fill = self.MODIFICARTION_FILL
+        cell_s.fill = self.MODIFICARTION_FILL
+        cell_n.fill = self.MODIFICARTION_FILL
+
+
+
+    def _insert_one_line(self, provider, line):
+        '''
+        算法：正确的做法是根据报单表生成一组数据，然后根据异常修改数据，再生成结果报表。
+        此处为了兼容之前的做法，直接对报表进行修改。
+        先遍历一边报表，根据供应商、商品编码、颜色尺码的相等情况，把行号记录到三个数组中：
+        same_p: 供应商相等的所有行
+        same_p_c:供应商、商品编码都相等的所有行
+        same_p_c_s:供应商、商品编码、颜色尺码都相等的行
+        
+        然后根据这三个数组来计算异常应该插入的位置。
+        :param provider: 
+        :param line: 异常行
+        :return: 
+        '''
+        code = line['code']
+        spec = line['spec']
+
+        same_p = []
+        same_p_c = []
+        same_p_c_s = []
+
+        for i in range(2, self.nrows):
+            p = utils.convert_possible_num_to_str(self.ws.cell(row=i, column=self.provider_cn).value)
+            c = utils.convert_possible_num_to_str(self.ws.cell(row=i, column=self.code_cn).value)
+            s = utils.convert_possible_num_to_str(self.ws.cell(row=i, column=self.spec_cn).value)
+
+            # 截止到内容未**，或者“样衣”两个字的行
+            if p == "**" or p == u"样衣":
+                break
+
+            # 跳过空行和汇总行。
+            if p == None or \
+                            p.find(u'汇总') != -1 or \
+                            p.find(u'总计') != -1:
+                continue
+
+            if provider == p:
+                same_p.append(i)
+                if code == c:
+                    same_p_c.append(i)
+                    if spec == s:
+                        same_p_c_s.append(i)
+
+        #print(same_p, same_p_c, same_p_c_s)
+        if len(same_p_c_s) != 0:
+            # 供应商，款号，编码完全相同，直接修改
+            line_nr = same_p_c_s[-1]
+            cell = self.ws.cell(row=line_nr, column=self.nr_cn)
+            orig_val = utils.convert_possible_num_to_str(cell.value)
+            val = orig_val + '，' + utils.gen_text_for_one_exception_line(line, simplified=True)
+            cell.value = val
+            cell.fill = self.MODIFICARTION_FILL
+
+        elif len(same_p_c) != 0:
+            # 仅供应商，款号相同，在同款号后面插入空行
+            line_nr = same_p_c[-1]
+            self._do_insertion(line_nr, provider, line)
+
+        elif len(same_p) != 0:
+            # 仅供应商相同，在供应商最后一行插入空行
+            line_nr = same_p[-1]
+            self._do_insertion(line_nr, provider, line)
+
+        else:
+            # 连应商都找不到，寻找合适位置插入空行
+            # for i in range(2, self.nrows):
+            #     p = utils.convert_possible_num_to_str(self.ws.cell(row=i, column=self.provider_cn).value)
+            #     c = utils.convert_possible_num_to_str(self.ws.cell(row=i, column=self.code_cn).value)
+            #     s = utils.convert_possible_num_to_str(self.ws.cell(row=i, column=self.spec_cn).value)
+            #
+            #     # 截止到内容未**，或者“样衣”两个字的行
+            #     if p == "**" or p == u"样衣":
+            #         break
+            #
+            #     # 跳过空行和汇总行。
+            #     if p == None or \
+            #                     p.find(u'汇总') != -1 or \
+            #                     p.find(u'总计') != -1:
+            #         continue
+            #
+            #     _p = provider
+            #     if i == 2 and _p < p:
+            #         break
+            #
+            #     # 找到下一个非空行
+            #     j = i + 1
+            #     while(j < self.nrows):
+            #         p2 = utils.convert_possible_num_to_str(self.ws.cell(row=j, column=self.provider_cn).value)
+            #         if p2 == None:
+            #             break
+            #         j = j + 1
+            #
+            #     if p2 != None and p < _p and _p < p2:
+            #         break
+
+            # 目前字符串比较有问题，直接插入到最上方
+            i = 1
+            self._do_insertion(i, provider, line)
+
+
+    def insert_exceptions(self, exceptions):
+        self._open()
+
+        provider_cn = self._get_column_cn(u'供应商')
+        code_cn = self._get_column_cn(u'供应商款号')
+        #self.ws.insert_rows(100)
+
+        for p in exceptions:
+            for l in exceptions[p]:
+                self._insert_one_line(p, l)
+
+
+        # # 写入数据
+        try:
+            self._save()
+        except IOError:
+            return False
+
+        self._close()
+        return True
 
 if __name__ == "__main__":
     xp = XlsProcessor('./test.xlsx')

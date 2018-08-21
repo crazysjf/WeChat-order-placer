@@ -60,7 +60,8 @@ while True:
 
     elif cmd == "p":
         business_logic.place_order(today_order_file)
-        exit()
+        print("报单完成")
+        business_logic.send_order_file(today_order_file)
 
     elif cmd == "ye":
         yo = xls_processor.XlsProcessor(yestoday_order_file)
@@ -76,7 +77,12 @@ while True:
         business_logic.send_today_exceptions(today_order_file)
 
     elif cmd == "iye":
-        pass
+        yo = xls_processor.XlsProcessor(yestoday_order_file)
+        e = yo.calc_order_exceptions()
+        utils.print_exception_summary(e)
+        utils.backup_file(today_order_file)
+        to = xls_processor.XlsProcessor(today_order_file)
+        to.insert_exceptions(e)
 
     elif cmd == "sof":
         business_logic.send_order_file(today_order_file)

@@ -1,7 +1,8 @@
 # -*- coding: utf-8 -*-
 from datetime import date
 import re
-
+import shutil
+import os
 def gen_order_text(orders, p):
     '''
     生成单个档口的报单文本
@@ -53,7 +54,8 @@ def print_exception_summary(r):
         lines = r[p]
         for l in lines:
             e_cnt = e_cnt + 1
-            print("%s, %s, %s, 到%s欠%s" % (p, l['code'], l['spec'], l['received'], l['nr']))
+            e_str = "%s: %s, %s, "  % (p, l['code'], l['spec']) + gen_text_for_one_exception_line(l)
+            print(e_str)
         print("-------------------")
     print("档口数： % s，异常数： % s\n" % (len(r.keys()), e_cnt))
 
@@ -65,6 +67,27 @@ def gen_all_orders_text(orders):
         s = s + '\n'
     return s
 
+def gen_text_for_one_exception_line(l, simplified=False):
+    '''
+    生成单行异常文本。格式：
+    无异常标记：
+    到x件欠x件
+    
+    有异常标记：
+    备注
+    
+    注意文本里面不应该包含档口名称
+    '''
+
+    if not 'notation' in l.keys():
+        if simplified == False:
+            s = "\t到%s件，欠%s件" % (l['received'], l['nr'])
+        else:
+            s = "\t欠%s" % l['nr']
+    else:
+        s = l['notation']
+
+    return s
 
 def gen_exception_text(e, p):
     '''
@@ -88,7 +111,8 @@ def gen_exception_text(e, p):
             if code != last_code and i != 0:
                 s = s + "------\n"
 
-            s = s + "%-5s,\t%-10s,\t到%s件，欠%s件\n" % (code, l['spec'], l['received'], l['nr'])
+            #s = s + "%-5s,\t%-10s,\t到%s件，欠%s件\n" % (code, l['spec'], l['received'], l['nr'])
+            s = s + "%-5s,\t%-10s," % (code, l['spec']) + gen_text_for_one_exception_line(l) + '\n'
             text = text + s
             last_code = code
         text = text + "------------------------------\n\n"
@@ -161,6 +185,8 @@ def _parse_order_string(nr):
     '''
     ordered = 0 # 报单数量
     owed = 0 # 欠货数量
+    if nr == None:
+        return (0,0)
     m = re.match(r'^([-+]?\d+)$', nr)
     if m != None:
         ordered = int(m.group(1))
@@ -230,6 +256,22 @@ def calc_received_exceptions(nr_s, payed_s, received_s):
     else:
         balance = owed + payed - received
         return (received, balance)
+
+def backup_file(f):
+    #m = re.match(r'(.*)\.xlsx', f)
+    m = re.match(r'(.*)(\.[^.]*)', f)
+    if m != None:
+        f2 = m.group(1) + '-备份' + m.group(2)
+    else:
+        print('文件名格式错误')
+        return
+    if os.path.exists((f2)):
+        i = input("备份文件：%s已存在。是否覆盖？(y/N)")
+        if i != 'y':
+            return
+
+    shutil.copy2(f, f2)
+
 
 if __name__ == "__main__":
     s = "\\"
