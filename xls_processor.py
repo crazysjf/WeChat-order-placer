@@ -271,7 +271,7 @@ class XlsProcessor():
             line_nr = same_p_c_s[-1]
             cell = self.ws.cell(row=line_nr, column=self.nr_cn)
             orig_val = utils.convert_possible_num_to_str(cell.value)
-            val = orig_val + '，' + utils.gen_text_for_one_exception_line(line, simplified=True)
+            val = utils.gen_text_for_one_exception_line(line, simplified=True) + ',' + orig_val
             cell.value = val
             cell.fill = self.MODIFICARTION_FILL
 
