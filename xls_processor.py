@@ -270,8 +270,15 @@ class XlsProcessor():
             # 供应商，款号，编码完全相同，直接修改
             line_nr = same_p_c_s[-1]
             cell = self.ws.cell(row=line_nr, column=self.nr_cn)
-            orig_val = utils.convert_possible_num_to_str(cell.value)
-            val = utils.gen_text_for_one_exception_line(line, simplified=True) + ',' + orig_val
+
+            # 如果异常只是简单欠货，而且欠货数量刚好等于报单数量，数量栏直接写成“欠xx”
+            # 如果有其他异常，或者数量不等，则写成“欠xx，原始值”
+            if not 'notation' in line.keys() and line['nr'] == cell.value:
+                val = utils.gen_text_for_one_exception_line(line, simplified=True)
+            else:
+                orig_val = utils.convert_possible_num_to_str(cell.value)
+                val = utils.gen_text_for_one_exception_line(line, simplified=True) + ',' + orig_val
+
             cell.value = val
             cell.fill = self.MODIFICARTION_FILL
 
