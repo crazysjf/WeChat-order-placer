@@ -3,6 +3,7 @@ import itchat
 import utils
 import time
 import config
+import constants
 
 def place_order(order_file):
     '''
@@ -43,7 +44,7 @@ def place_order(order_file):
                     order_text = utils.gen_order_text(orders, p)
                     itchat.send(order_text, toUserName=f['UserName'])
                     print(u"已发送：" + p)
-                    time.sleep(0.5) # 加入间隔，以免微信报错 ：发送消息太频繁。
+                    time.sleep(constants.SENDING_TIME_INTERVAL)
             break
         elif str == 'n' or str == "N":
             break
@@ -97,7 +98,8 @@ def send_today_exceptions(today_order_file):
                     order_text = utils.gen_exception_text(e, p)
                     itchat.send(order_text, toUserName=f['UserName'])
                     print(u"已发送：" + p)
-                    time.sleep(0.5) # 加入间隔，以免微信报错 ：发送消息太频繁。
+                    # 加入间隔，以免微信报错 ：发送消息太频繁。
+                    time.sleep(constants.SENDING_TIME_INTERVAL)
             break
         elif str == 'n' or str == "N":
             break
