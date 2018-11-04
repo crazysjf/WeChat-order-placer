@@ -272,6 +272,23 @@ def backup_file(f):
 
     shutil.copy2(f, f2)
 
+def get_good_profile_file(tof):
+    '''
+    获取商品资料文件名。
+    tof是当天计划采购建议报表，商品资料文件是同文件夹下的名为：商品资料xxxx.xlsx的文件。
+    存在的话返回绝对路径，否则返回None。
+    '''
+    tof = os.path.abspath(tof)
+    top = os.path.dirname(tof)
+    #print(top)
+    list = os.listdir(top)
+    for f in list:
+        #print(f)
+        m = re.match(r'^商品资料.*xlsx$', f)
+        if m != None:
+            return os.path.join(top, m.group(0))
+    return None
+
 
 if __name__ == "__main__":
     s = "\\"

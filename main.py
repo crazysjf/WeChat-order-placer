@@ -4,6 +4,9 @@ import sys
 import getopt
 import business_logic
 import xls_processor
+from goods_profile import GoodsProfile
+import os
+
 
 def usage():
     print('''test.py [options]
@@ -49,6 +52,7 @@ def help():
  te: 显示今天到货异常(today exceptions)
  ste: 发送今天到货异常(send today exceptions)
  sof: 发送报表给采购(send order file)
+ i: 显示参数信息
  q: 退出
  """)
 
@@ -84,9 +88,24 @@ while True:
         to = xls_processor.XlsProcessor(today_order_file)
         to.insert_exceptions(e)
 
+        # 处理无仓位货品
+
     elif cmd == "sof":
         business_logic.send_order_file(today_order_file)
 
+
+    elif cmd == 'i':
+        print("当日报表文件：%s" % today_order_file)
+        print("昨日报表文件：%s" % yestoday_order_file)
+        gpf = utils.get_good_profile_file(today_order_file)
+        gp = GoodsProfile(gpf)
+        df = gp.get_df()
+        loc = df.loc[df['商品编码'] == '11004.H12-sf']
+        print(loc)
+        cw = loc['仓位']
+        print(cw)
+        print(type(cw).__name__)
+        print(cw[8])
 
     elif cmd == "q":
         exit()
