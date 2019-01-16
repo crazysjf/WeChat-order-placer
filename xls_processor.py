@@ -194,6 +194,8 @@ class XlsProcessor():
                 line = {'code':code, 'spec':spec, 'nr': e, 'received':received}
                 if abnormal != None:
                     line['notation'] = notation
+                    if notation == None:
+                        print("%s, %s, %s: 可能出错误，备注需要作为异常采用，但是为空"%(provider,code,spec))
                 if not provider in result:
                     result[provider] = [line]
                 else:
