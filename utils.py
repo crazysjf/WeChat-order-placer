@@ -32,6 +32,8 @@ def gen_order_text(orders, p):
         text = text + u" - 为了大家的方便，请开实价、开实数，避免欠货。\n"
         text = text + u" - 网店经营，颜色、尺码缺货请不要拼凑。\n"
         text = text + u" - 请微信拍照发单，2小时内付款，工仔收货。\n"
+        text = text + u" - 单据请和货一起放入包裹。\n"
+        text = text + u" - 有收版收色的情况，请第一时间反馈。\n"
         text = text + u" - 该单仅当日有效。合作愉快！"
 
 
@@ -118,6 +120,7 @@ def gen_exception_text(e, p):
         text = text + "------------------------------\n\n"
         text = text + " - 有异议请及时回复\n"
         text = text + " - 无异议无需回复\n"
+
 
     except:
         text = '报单生成错误'
