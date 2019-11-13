@@ -34,7 +34,9 @@ def gen_order_text(orders, p):
         text = text + u" - 请微信拍照发单，2小时内付款，工仔收货。\n"
         text = text + u" - 单据请和货一起放入包裹。\n"
         text = text + u" - 有收版收色的情况，请第一时间反馈。\n"
-        text = text + u" - 该单仅当日有效。合作愉快！"
+        text = text + u" - 该单仅当日有效。合作愉快！\n"
+        text = text + u" - 工仔联系电话：15986644447，小郑。新来业务不熟，如有意见，敬请随时反馈。"
+
 
 
 
