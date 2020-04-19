@@ -52,10 +52,15 @@ def help():
  te: 显示今天到货异常(today exceptions)
  ste: 发送今天到货异常(send today exceptions)
  sof: 发送报表给采购(send order file)
+ x: 处理Excel报表
  i: 显示参数信息
  q: 退出
  """)
 
+
+# For test
+#utils.process_xls(today_order_file)
+#exit(0)
 
 while True:
     cmd = input("输入命令(h：帮助)：")
@@ -106,6 +111,9 @@ while True:
         print(cw)
         print(type(cw).__name__)
         print(cw[8])
+
+    elif cmd == 'x':
+        utils.process_xls(today_order_file)
 
     elif cmd == "q":
         exit()

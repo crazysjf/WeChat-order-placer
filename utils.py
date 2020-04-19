@@ -3,6 +3,9 @@ from datetime import date
 import re
 import shutil
 import os
+import pandas as pd
+
+
 def gen_order_text(orders, p):
     '''
     生成单个档口的报单文本
@@ -299,7 +302,55 @@ def get_good_profile_file(tof):
             return os.path.join(top, m.group(0))
     return None
 
+cols_to_reserve = ["款式编码", "商品编码", "供应商", "供应商款号", "颜色规格", "商品简称", "前7天<br/>销量", \
+                   "待发货数","仓库库存数","建议采购数","商品备注","最早付款时间", "上限天数","成本价" ]
+
+def analyze_annotaion(anno):
+    """可能备注形式：
+    **报11356-犇犇.8161
+    **报11356-犇犇.8161*24
+    **报11356-犇犇.8161, 其他备注
+    **报11356-犇犇.8161.黄L*24"""
+
+    m = re.match(r'.*\*\*报([^,*]+)[\*([0-9]+]',anno)
+    if m is None:
+        return
+
+    str = m.group(1)
+    print( m.group(2))
+
+    print(str)
+
+def process_xls(today_order_file):
+    '''处理聚水潭导出报表。代替原来VBA代码'''
+    df = pd.read_excel(today_order_file)
+    columns = df.columns.tolist()
+    for col in columns:
+        if col not in cols_to_reserve:
+            df.pop(col)
+
+    #print(df['商品备注'])
+    idx = df['商品备注'].apply(lambda s: "收" in str(s) or  "清" in str(s)  or "销低" in str(s))
+
+    # 不报单商品：收清销低商品
+    df_no_place = df.loc[idx]
+
+    #print(df.loc[idx,["供应商", "商品编码", "供应商款号", "颜色规格", "前7天<br/>销量", "待发货数","仓库库存数","建议采购数","商品备注"]])
+
+    df = df.loc[~idx]
+
+    # 处理**报
+    # 插入异常
+    # 计算天数
+
+
+    #输出
+    out_file = os.path.join(os.path.dirname(today_order_file), "备份-" + os.path.basename(today_order_file))
+    df.to_excel(out_file, index=False)
+
+
 
 if __name__ == "__main__":
-    s = "\\"
-    print(_parse_payed_received_string(s))
+    s = "收4.1，**报11396-梦梦.5890*21"
+    analyze_annotaion(s)
+
