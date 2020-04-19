@@ -59,8 +59,8 @@ def help():
 
 
 # For test
-#utils.process_xls(today_order_file)
-#exit(0)
+utils.process_xls(today_order_file)
+exit(0)
 
 while True:
     cmd = input("输入命令(h：帮助)：")

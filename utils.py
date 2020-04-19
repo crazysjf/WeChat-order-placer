@@ -307,19 +307,35 @@ cols_to_reserve = ["款式编码", "商品编码", "供应商", "供应商款号
 
 def analyze_annotaion(anno):
     """可能备注形式：
-    **报11356-犇犇.8161
-    **报11356-犇犇.8161*24
-    **报11356-犇犇.8161, 其他备注
-    **报11356-犇犇.8161.黄L*24"""
+    测试用例：
+    str = "**报111280-美雪.11832-1.黄L*23,"
+    str = "收4。3，**报111280-美雪.11832-1*23,"
+    str = "收4。3，**报111280-美雪.11832-1"
+    str = "收4。3，**报111280-美雪.11832-1.黄L"
 
-    m = re.match(r'.*\*\*报([^,*]+)[\*([0-9]+]',anno)
+    如果没有解析到内容，返回None。
+    如果解析到内容，则返回字典，格式如下：
+    {
+        provider:
+        code:
+        spec:
+        price:
+    }
+    如果对应键没有内容，则值为None
+    """
+    m = re.match(
+        r'.*\*\*报(?P<provider>[^.,*]+)\.(?P<code>[^.,*]+)(?:\.(?P<spec>[^.,*]+)){0,1}(?:\*(?P<price>[0-9]+)){0,1}.*',
+        anno)
+
     if m is None:
-        return
+        return None
 
-    str = m.group(1)
-    print( m.group(2))
-
-    print(str)
+    ret = {}
+    ret['provider'] = m.group('provider')
+    ret['code'] = m.group('code')
+    ret['spec'] = m.group('spec')
+    ret['price'] = m.group('price')
+    return ret
 
 def process_xls(today_order_file):
     '''处理聚水潭导出报表。代替原来VBA代码'''
@@ -340,6 +356,23 @@ def process_xls(today_order_file):
     df = df.loc[~idx]
 
     # 处理**报
+    for ridx in df.index:
+        #print(df.loc[ridx])
+        notation = df.loc[ridx]['商品备注']
+        if notation == notation: # nan判断: nan!=nan, 备注为空的时候，这里值为nan
+            ret = analyze_annotaion(notation)
+            if ret is not None:
+                #print(ret)
+                if ret['provider'] is not None:
+                    df.loc[ridx, '供应商'] = ret['provider']
+                if ret['code'] is not None:
+                    df.loc[ridx, '供应商款号'] = ret['code']
+                if ret['spec'] is not None:
+                    df.loc[ridx, '颜色规格'] = ret['spec']
+                if ret['price'] is not None:
+                    df.loc[ridx, '成本价'] = ret['price']
+
+    df = df.sort_values("供应商")
     # 插入异常
     # 计算天数
 
