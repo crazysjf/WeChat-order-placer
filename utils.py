@@ -403,11 +403,12 @@ def process_xls(today_order_file, yestoday_order_file):
                 if ret['price'] is not None:
                     df.loc[ridx, '成本价'] = ret['price']
 
-    df = df.sort_values(["供应商","供应商款号","颜色规格"])
 
 
+    # 计算数量列
     num = df.apply(calNum, axis=1)
     df['数量'] = num
+
 
     # 插入异常
     if yestoday_order_file is None:
@@ -415,10 +416,29 @@ def process_xls(today_order_file, yestoday_order_file):
     yo = xls_processor.XlsProcessor(yestoday_order_file)
     e = yo.calc_order_exceptions()
 
+    for p in e.keys():
+        for l in e[p]:
+            c = l['code']
+            s = l['spec']
+            idx = (df['供应商'] == p) & (df['供应商款号'] == c) & (df['颜色规格'] == s)
+            list = df[idx].index.tolist()
+            text = gen_text_for_one_exception_line(l, True)
+            #print(text)
+            if len(list) == 0:  # 表格中没有对应行
+                df = df.append({"供应商":p, "供应商款号":c, "颜色规格": s, "数量":text}, ignore_index = True)
+            elif len(list) == 1: # 表格中找到唯一对应行
+                v  = text + ',' + str(df.loc[list[0]]["数量"])
+                df.loc[list[0],"数量"] = v
+            else: # 报表有异常，有重复行
+                print("报表异常，多个位置发现同样商品：", list)
+
+
     # 计算天数
 
 
     #输出
+    df = df.sort_values(["供应商","供应商款号","颜色规格"])
+
     out_file = os.path.join(os.path.dirname(today_order_file), "备份-" + os.path.basename(today_order_file))
     df.to_excel(out_file, index=False)
 
