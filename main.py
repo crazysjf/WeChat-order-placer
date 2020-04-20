@@ -59,8 +59,9 @@ def help():
 
 
 # For test
-utils.process_xls(today_order_file)
+utils.process_xls(today_order_file, yestoday_order_file)
 exit(0)
+
 
 while True:
     cmd = input("输入命令(h：帮助)：")
@@ -102,15 +103,6 @@ while True:
     elif cmd == 'i':
         print("当日报表文件：%s" % today_order_file)
         print("昨日报表文件：%s" % yestoday_order_file)
-        gpf = utils.get_good_profile_file(today_order_file)
-        gp = GoodsProfile(gpf)
-        df = gp.get_df()
-        loc = df.loc[df['商品编码'] == '11004.H12-sf']
-        print(loc)
-        cw = loc['仓位']
-        print(cw)
-        print(type(cw).__name__)
-        print(cw[8])
 
     elif cmd == 'x':
         utils.process_xls(today_order_file)

@@ -4,7 +4,8 @@ import re
 import shutil
 import os
 import pandas as pd
-
+import xls_processor
+import math
 
 def gen_order_text(orders, p):
     '''
@@ -337,9 +338,36 @@ def analyze_annotaion(anno):
     ret['price'] = m.group('price')
     return ret
 
-def process_xls(today_order_file):
+
+#  计算报单数量
+def calNum(l):
+    n = l['建议采购数']
+    upper_lim = l['上限天数']
+
+    if upper_lim != upper_lim: # 上限为nan, 不压货
+        if n <= 20:
+            ret = math.ceil(n/5)*5
+        else:
+            ret = math.ceil(n/10)*10
+    else: # 压货
+        if n <= 7:
+            ret = 5
+        elif 7 < n and n <= 12:
+            ret = 10
+        elif 12 < n and n <= 17:
+            ret = 15
+        elif 17 < n and n <= 24:
+            ret = 20
+        else:
+            ret = math.floor(n/10)*10
+
+    return ret
+
+def process_xls(today_order_file, yestoday_order_file):
     '''处理聚水潭导出报表。代替原来VBA代码'''
     df = pd.read_excel(today_order_file)
+
+    # 删除不需要列
     columns = df.columns.tolist()
     for col in columns:
         if col not in cols_to_reserve:
@@ -348,11 +376,14 @@ def process_xls(today_order_file):
     #print(df['商品备注'])
     idx = df['商品备注'].apply(lambda s: "收" in str(s) or  "清" in str(s)  or "销低" in str(s))
 
-    # 不报单商品：收清销低商品
+    # 插入一些列
+    c = df.columns.get_loc('商品备注')
+    df.insert(c,"实拿", "") # 注意由于c不变，插入后顺序和这里相反
+    df.insert(c,"实付", "")
+    df.insert(c,"数量", "")
+
+    # 删除不报单商品：收清销低商品
     df_no_place = df.loc[idx]
-
-    #print(df.loc[idx,["供应商", "商品编码", "供应商款号", "颜色规格", "前7天<br/>销量", "待发货数","仓库库存数","建议采购数","商品备注"]])
-
     df = df.loc[~idx]
 
     # 处理**报
@@ -372,8 +403,18 @@ def process_xls(today_order_file):
                 if ret['price'] is not None:
                     df.loc[ridx, '成本价'] = ret['price']
 
-    df = df.sort_values("供应商")
+    df = df.sort_values(["供应商","供应商款号","颜色规格"])
+
+
+    num = df.apply(calNum, axis=1)
+    df['数量'] = num
+
     # 插入异常
+    if yestoday_order_file is None:
+        input("未指定前日报表文件。按任意键继续...")
+    yo = xls_processor.XlsProcessor(yestoday_order_file)
+    e = yo.calc_order_exceptions()
+
     # 计算天数
 
 
