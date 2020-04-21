@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-from datetime import date
+from datetime import date, datetime
 import re
 import shutil
 import os
@@ -401,7 +401,7 @@ def process_xls(today_order_file, yestoday_order_file):
                 if ret['spec'] is not None:
                     df.loc[ridx, '颜色规格'] = ret['spec']
                 if ret['price'] is not None:
-                    df.loc[ridx, '成本价'] = ret['price']
+                    df.loc[ridx, '成本价'] = float(ret['price'])
 
 
 
@@ -434,7 +434,18 @@ def process_xls(today_order_file, yestoday_order_file):
 
 
     # 计算天数
+    def cal_days(s):
+        try:
+            date = datetime.strptime(s, "%Y/%m/%d %H:%M:%S")
+            now = datetime.now()
+            d = ((now - date).total_seconds()/60/60 + 12) / 24
+            d = int(d)
+        except:
+            d = 0
+        return "D%s" % d
 
+    d = df['最早付款时间'].apply(cal_days)
+    df.insert(df.columns.get_loc('最早付款时间'),"天数",d )
 
     #输出
     df = df.sort_values(["供应商","供应商款号","颜色规格"])
