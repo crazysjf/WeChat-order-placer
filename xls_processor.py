@@ -352,6 +352,12 @@ class XlsProcessor():
         self._close()
         return True
 
+
+    def format(self, exceptions):
+        self._open()
+
+        self._close()
+
 if __name__ == "__main__":
     xp = XlsProcessor('./test.xlsx')
     orders = xp.gen_orders()

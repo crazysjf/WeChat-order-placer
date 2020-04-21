@@ -446,6 +446,34 @@ def process_xls(today_order_file, yestoday_order_file):
 
     d = df['最早付款时间'].apply(cal_days)
     df.insert(df.columns.get_loc('最早付款时间'),"天数",d )
+    df.pop('最早付款时间')
+
+    # 更新备注
+    def update_annotation(l):
+        code = l['商品编码']
+        anno = l['商品备注']
+        if anno != anno:
+            anno = ""
+
+        if code == code: # 商品编码不为空
+            (p, c, s, *_) = code.split('-')
+
+            if     not p.upper() in l['供应商'].upper() or \
+                    not c.upper() in l['供应商款号'].upper() or \
+                    not s.upper() in l['颜色规格'].upper():
+
+                #print(code, l['供应商'],l['供应商款号'],l['颜色规格'])
+                #print(anno, code)
+                if len(anno) == 0:
+                    return code
+                else:
+                    return anno + '\n' + code
+
+        else:
+            return anno
+
+    s = df.apply(update_annotation, axis=1)
+    df['商品备注'] = s
 
     #输出
     df = df.sort_values(["供应商","供应商款号","颜色规格"])
