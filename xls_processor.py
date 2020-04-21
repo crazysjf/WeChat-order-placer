@@ -1,6 +1,8 @@
 # -*- coding: utf-8 -*-
 from openpyxl import load_workbook
 import openpyxl.styles as sty
+from openpyxl.styles import Border, Side
+
 import utils
 import re
 import constants
@@ -353,9 +355,34 @@ class XlsProcessor():
         return True
 
 
-    def format(self, exceptions):
+    def format(self):
         self._open()
 
+        # 分隔供应商，需要从下往上遍历
+        for i in range(self.nrows, 2, -1):
+            p1 = self.ws.cell(row=i, column=self.provider_cn).value
+            p2 = self.ws.cell(row=i-1, column=self.provider_cn).value
+            if p1 is None:
+                continue
+
+            if p1 != p2:
+                self.ws.insert_rows(i)
+
+        for i in range(2, self.nrows):
+            gray_fill =sty.PatternFill(fill_type="solid", fgColor="F0F0F0")
+            #self.ws.row_dimensions[i].fill = green_fill
+            for cell in self.ws[i:i]:
+                cell.fill = gray_fill
+
+        thin = Side(border_style="thin", color="000000")
+        for r in self.ws[1:self.ws.max_row]:
+            for cell in r:
+                #print(cell.value)
+                cell.border = Border(top=thin, left=thin, right=thin, bottom=thin)
+
+
+
+        self._save()
         self._close()
 
 if __name__ == "__main__":
