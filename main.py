@@ -59,8 +59,8 @@ def help():
 
 
 # For test
-utils.process_xls(today_order_file, yestoday_order_file)
-exit(0)
+# utils.process_xls(today_order_file, yestoday_order_file)
+# exit(0)
 
 
 while True:
@@ -105,7 +105,7 @@ while True:
         print("昨日报表文件：%s" % yestoday_order_file)
 
     elif cmd == 'x':
-        utils.process_xls(today_order_file)
+        utils.process_xls(today_order_file, yestoday_order_file)
 
     elif cmd == "q":
         exit()

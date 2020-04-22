@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 from openpyxl import load_workbook
 import openpyxl.styles as sty
-from openpyxl.styles import Border, Side
+from openpyxl.styles import Border, Side, Font, Alignment
 
 import utils
 import re
@@ -355,6 +355,11 @@ class XlsProcessor():
         return True
 
 
+    def _adjust_column_width(self, name, width):
+        """调整列宽"""
+        col = self._get_column_cn(name)
+        self.ws.column_dimensions[chr(ord('A') + col - 1)].width = width
+
     def format(self):
         self._open()
 
@@ -370,13 +375,16 @@ class XlsProcessor():
 
         # TODO: 插入行之后self.nrows不能再用
 
+        # 交替填充款号背景
         gray_fill = sty.PatternFill(fill_type="solid", fgColor="F0F0F0")
         white_fill = sty.PatternFill(fill_type="solid", fgColor="FFFFFF")
-        old_p = self.ws.cell(row=2, column=self.provider_cn).value
-        old_c = self.ws.cell(row=2, column=self.code_cn).value
+        yellow_fill = sty.PatternFill(fill_type="solid", fgColor="FFEB9C")
+
+        # old_p = self.ws.cell(row=2, column=self.provider_cn).value
+        # old_c = self.ws.cell(row=2, column=self.code_cn).value
 
         fill = white_fill
-        for i in range(3, self.ws.max_row):
+        for i in range(3, self.ws.max_row + 1):
             p1 = self.ws.cell(row=i-1, column=self.provider_cn).value
             c1 = self.ws.cell(row=i-1, column=self.code_cn).value
             p2 = self.ws.cell(row=i, column=self.provider_cn).value
@@ -393,13 +401,62 @@ class XlsProcessor():
                 for cell in self.ws[i:i]:
                     cell.fill = gray_fill
 
-        # 设置边框
+        # 整体风格：边框、字体
         thin = Side(border_style="thin", color="000000")
+        font = Font(size=10)
         for r in self.ws[1:self.ws.max_row]:
             for cell in r:
                 #print(cell.value)
                 cell.border = Border(top=thin, left=thin, right=thin, bottom=thin)
+                cell.font = font
 
+        # 局部风格
+        notation_small_font = Font(size=7)
+        day2_fill = sty.PatternFill(fill_type="solid", fgColor="FFCC33")
+        day3_fill = sty.PatternFill(fill_type="solid", fgColor="FF003C")
+
+        day_cn = self._get_column_cn('天数')
+        nr_cn = self._get_column_cn('数量')
+        #self.ws.column_dimensions[chr(ord('A') + self.notation_cn - 1)].width = "20"
+
+        self._adjust_column_width("款式编码", 15)
+        self._adjust_column_width("商品编码", 18)
+        self._adjust_column_width("供应商", 15)
+        self._adjust_column_width("颜色规格", 15)
+
+        self._adjust_column_width("商品备注", 20)
+        self._adjust_column_width("天数", 3)
+        self._adjust_column_width("上限天数", 3)
+        self._adjust_column_width("成本价",4)
+
+        for i in range(2, self.ws.max_row + 1):
+            # 备注
+            cell = self.ws.cell(row=i, column=self.notation_cn)
+            notation = str(cell.value) if cell.value is not None else ""
+            if '\n' in notation:
+                cell.font = notation_small_font
+                cell.alignment = Alignment(vertical='center',wrapText=True)
+
+            if '收' in notation or "清" in notation or "销低" in notation:
+                cell.fill = yellow_fill
+
+            # 天数
+            cell = self.ws.cell(row=i, column=day_cn)
+            s = cell.value
+            if s is not None:
+                d =  int(s[1:])
+                if d == 2:
+                    cell.fill = day2_fill
+                elif d > 2:
+                    cell.fill = day3_fill
+
+            # 有异常的填红色背景
+            cell = self.ws.cell(row=i, column=nr_cn)
+            if cell.value is  not None:
+                s = str(cell.value)
+                m = re.search(r'[^0-9]+', s)
+                if m != None:
+                    cell.fill = self.MODIFICARTION_FILL
 
 
         self._save()

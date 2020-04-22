@@ -373,18 +373,12 @@ def process_xls(today_order_file, yestoday_order_file):
         if col not in cols_to_reserve:
             df.pop(col)
 
-    #print(df['商品备注'])
-    idx = df['商品备注'].apply(lambda s: "收" in str(s) or  "清" in str(s)  or "销低" in str(s))
-
     # 插入一些列
     c = df.columns.get_loc('商品备注')
-    df.insert(c,"实拿", "") # 注意由于c不变，插入后顺序和这里相反
-    df.insert(c,"实付", "")
-    df.insert(c,"数量", "")
+    df.insert(c, "实拿", "")  # 注意由于c不变，插入后顺序和这里相反
+    df.insert(c, "实付", "")
+    df.insert(c, "数量", "")
 
-    # 删除不报单商品：收清销低商品
-    df_no_place = df.loc[idx]
-    df = df.loc[~idx]
 
     # 处理**报
     for ridx in df.index:
@@ -475,9 +469,21 @@ def process_xls(today_order_file, yestoday_order_file):
     s = df.apply(update_annotation, axis=1)
     df['商品备注'] = s
 
-    #输出
+
+    # 排序
     df = df.sort_values(["供应商","供应商款号","颜色规格"])
 
+    # 删除不报单商品：收清销低商品
+    idx = df['商品备注'].apply(lambda s: "收" in str(s) or "清" in str(s) or "销低" in str(s))
+    df_no_place = df.loc[idx]
+    df = df.loc[~idx]
+
+    # 把收清商品添到最后
+    df.reset_index(inplace=True, drop=True)
+    df_no_place.reset_index(inplace=True, drop=True)
+    df = df.append(df_no_place, ignore_index=True)
+
+    # 输出
     out_file = os.path.join(os.path.dirname(today_order_file), "备份-" + os.path.basename(today_order_file))
     df.to_excel(out_file, index=False)
 
