@@ -484,10 +484,11 @@ def process_xls(today_order_file, yestoday_order_file):
     df = df.append(df_no_place, ignore_index=True)
 
     # 输出
-    out_file = os.path.join(os.path.dirname(today_order_file), "备份-" + os.path.basename(today_order_file))
-    df.to_excel(out_file, index=False)
+    backup_file(today_order_file)
+    #out_file = os.path.join(os.path.dirname(today_order_file), "备份-" + os.path.basename(today_order_file))
+    df.to_excel(today_order_file, index=False)
 
-    xls_processor.XlsProcessor(out_file).format()
+    xls_processor.XlsProcessor(today_order_file).format()
 
 
 if __name__ == "__main__":

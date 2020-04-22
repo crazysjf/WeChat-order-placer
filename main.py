@@ -61,7 +61,10 @@ def help():
 # For test
 # utils.process_xls(today_order_file, yestoday_order_file)
 # exit(0)
-
+# business_logic.place_order(today_order_file)
+# print("报单完成")
+# business_logic.send_order_file(today_order_file)
+# exit(0)
 
 while True:
     cmd = input("输入命令(h：帮助)：")
@@ -87,6 +90,10 @@ while True:
         business_logic.send_today_exceptions(today_order_file)
 
     elif cmd == "iye":
+        c = input('iye命令已废除，确定要使用？(y/N)：')
+        if c != 'y' and c != 'Y':
+            continue
+
         yo = xls_processor.XlsProcessor(yestoday_order_file)
         e = yo.calc_order_exceptions()
         utils.print_exception_summary(e)
