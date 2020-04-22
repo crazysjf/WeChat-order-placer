@@ -368,12 +368,32 @@ class XlsProcessor():
             if p1 != p2:
                 self.ws.insert_rows(i)
 
-        for i in range(2, self.nrows):
-            gray_fill =sty.PatternFill(fill_type="solid", fgColor="F0F0F0")
-            #self.ws.row_dimensions[i].fill = green_fill
-            for cell in self.ws[i:i]:
-                cell.fill = gray_fill
+        # TODO: 插入行之后self.nrows不能再用
 
+        gray_fill = sty.PatternFill(fill_type="solid", fgColor="F0F0F0")
+        white_fill = sty.PatternFill(fill_type="solid", fgColor="FFFFFF")
+        old_p = self.ws.cell(row=2, column=self.provider_cn).value
+        old_c = self.ws.cell(row=2, column=self.code_cn).value
+
+        fill = white_fill
+        for i in range(3, self.ws.max_row):
+            p1 = self.ws.cell(row=i-1, column=self.provider_cn).value
+            c1 = self.ws.cell(row=i-1, column=self.code_cn).value
+            p2 = self.ws.cell(row=i, column=self.provider_cn).value
+            c2 = self.ws.cell(row=i, column=self.code_cn).value
+            if p1 != p2 or c1 != c2: # 检测到供应商或者编码变化
+                fill = gray_fill if fill == white_fill else white_fill # 交换填充颜色
+
+            if (p1 is None and c1 is None) or \
+                    (p2 is None and c2 is None):
+                fill = white_fill # 遇到空行重置为白底
+                continue
+
+            if fill == gray_fill:
+                for cell in self.ws[i:i]:
+                    cell.fill = gray_fill
+
+        # 设置边框
         thin = Side(border_style="thin", color="000000")
         for r in self.ws[1:self.ws.max_row]:
             for cell in r:
