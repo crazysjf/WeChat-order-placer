@@ -475,6 +475,7 @@ def process_xls(today_order_file, yestoday_order_file):
     df['商品备注'] = s
 
     # 排序
+    df['供应商'] = df['供应商'].apply(lambda p: str(p).upper()) # 供应商转大写
     df = df.sort_values(["供应商","供应商款号","颜色规格"])
 
     # 删除不报单商品：收清销低商品
