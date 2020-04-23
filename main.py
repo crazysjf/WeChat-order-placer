@@ -59,12 +59,8 @@ def help():
 
 
 # For test
-# utils.process_xls(today_order_file, yestoday_order_file)
-# exit(0)
-# business_logic.place_order(today_order_file)
-# print("报单完成")
-# business_logic.send_order_file(today_order_file)
-# exit(0)
+#utils.process_xls(today_order_file, yestoday_order_file)
+#exit(0)
 
 while True:
     cmd = input("输入命令(h：帮助)：")

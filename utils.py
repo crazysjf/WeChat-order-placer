@@ -365,6 +365,10 @@ def calNum(l):
 
 def process_xls(today_order_file, yestoday_order_file):
     '''处理聚水潭导出报表。代替原来VBA代码'''
+    # test
+    # pd.options.display.max_columns = 100
+    # pd.options.display.width = 300
+
     df = pd.read_excel(today_order_file)
 
     # 删除不需要列
@@ -462,19 +466,20 @@ def process_xls(today_order_file, yestoday_order_file):
                     return code
                 else:
                     return anno + '\n' + code
-
+            else:
+                return anno
         else:
             return anno
 
     s = df.apply(update_annotation, axis=1)
     df['商品备注'] = s
 
-
     # 排序
     df = df.sort_values(["供应商","供应商款号","颜色规格"])
 
     # 删除不报单商品：收清销低商品
     idx = df['商品备注'].apply(lambda s: "收" in str(s) or "清" in str(s) or "销低" in str(s))
+
     df_no_place = df.loc[idx]
     df = df.loc[~idx]
 
@@ -485,9 +490,7 @@ def process_xls(today_order_file, yestoday_order_file):
 
     # 输出
     backup_file(today_order_file)
-    #out_file = os.path.join(os.path.dirname(today_order_file), "备份-" + os.path.basename(today_order_file))
     df.to_excel(today_order_file, index=False)
-
     xls_processor.XlsProcessor(today_order_file).format()
 
 

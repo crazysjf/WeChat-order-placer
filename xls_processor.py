@@ -403,7 +403,7 @@ class XlsProcessor():
 
         # 冻结首行
         self.ws.freeze_panes = "A2"
-        
+
         # 整体风格：边框、字体
         thin = Side(border_style="thin", color="000000")
         font = Font(size=10)
