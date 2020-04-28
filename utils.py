@@ -7,6 +7,9 @@ import pandas as pd
 import xls_processor
 import math
 
+# 测试时设为True
+TEST = False
+
 def gen_order_text(orders, p):
     '''
     生成单个档口的报单文本
@@ -418,6 +421,7 @@ def process_xls(today_order_file, yestoday_order_file):
         for l in e[p]:
             c = l['code']
             s = l['spec']
+
             idx = (df['供应商'] == p) & (df['供应商款号'] == c) & (df['颜色规格'] == s)
             list = df[idx].index.tolist()
             text = gen_text_for_one_exception_line(l, True)
@@ -445,6 +449,7 @@ def process_xls(today_order_file, yestoday_order_file):
     d = df['最早付款时间'].apply(cal_days)
     df.insert(df.columns.get_loc('最早付款时间'),"天数",d )
     df.pop('最早付款时间')
+
 
     # 更新备注
     def update_annotation(l):
@@ -474,9 +479,13 @@ def process_xls(today_order_file, yestoday_order_file):
     s = df.apply(update_annotation, axis=1)
     df['商品备注'] = s
 
+
     # 排序
-    df['供应商'] = df['供应商'].apply(lambda p: str(p).upper()) # 供应商转大写
-    df = df.sort_values(["供应商","供应商款号","颜色规格"])
+    # 供应商转大写后排序，然后删除，保留原供应商大小写，以免异常插入出问题
+    df['供应商大写'] = df['供应商'].apply(lambda p: str(p).upper())
+    df = df.sort_values(["供应商大写","供应商款号","颜色规格"])
+    del df['供应商大写']
+
 
     # 删除不报单商品：收清销低商品
     idx = df['商品备注'].apply(lambda s: "收" in str(s) or "清" in str(s) or "销低" in str(s))
@@ -490,9 +499,14 @@ def process_xls(today_order_file, yestoday_order_file):
     df = df.append(df_no_place, ignore_index=True)
 
     # 输出
-    backup_file(today_order_file)
-    df.to_excel(today_order_file, index=False)
-    xls_processor.XlsProcessor(today_order_file).format()
+    if TEST == True:
+        f = os.path.dirname(today_order_file) + "\测试结果.xlsx"
+        df.to_excel(f, index=False)
+        xls_processor.XlsProcessor(f).format()
+    else:
+        backup_file(today_order_file)
+        df.to_excel(today_order_file, index=False)
+        xls_processor.XlsProcessor(today_order_file).format()
 
 
 if __name__ == "__main__":

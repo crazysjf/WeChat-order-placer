@@ -58,9 +58,9 @@ def help():
  """)
 
 
-# For test
-#utils.process_xls(today_order_file, yestoday_order_file)
-#exit(0)
+if utils.TEST == True:
+    utils.process_xls(today_order_file, yestoday_order_file)
+    exit(0)
 
 while True:
     cmd = input("输入命令(h：帮助)：")
