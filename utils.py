@@ -487,8 +487,14 @@ def process_xls(today_order_file, yestoday_order_file):
     del df['供应商大写']
 
 
-    # 删除不报单商品：收清销低商品
-    idx = df['商品备注'].apply(lambda s: "收" in str(s) or "清" in str(s) or "销低" in str(s))
+    # 删除不报单商品：收清销低商品 ,但不包含欠、换
+    def lam(l):
+        s = str(l['商品备注'])
+        nr = str(l['数量'])
+        return ("收" in s or "清" in s or "销低" in s) and "欠" not in nr  and "换" not in nr
+
+    #idx = df['商品备注'].apply(lambda s: ("收" in str(s) or "清" in str(s) or "销低" in str(s)) and "欠" not in str(s) and "换" not in str(s))
+    idx = df.apply(lam, axis=1)
 
     df_no_place = df.loc[idx]
     df = df.loc[~idx]
