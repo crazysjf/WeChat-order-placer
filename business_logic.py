@@ -5,7 +5,7 @@ import time
 import config
 import constants
 
-def place_order(order_file):
+def place_order(order_file, reverse=False):
     '''
     报单
     :param order_file: 报单报表 
@@ -34,11 +34,12 @@ def place_order(order_file):
         print(p)
     print('\n共 %d 家\n' % len(unknown_providers))
 
+
     while(True):
         #TODO: Continue这行只能用英文，用中文或者unicode会导致powershell中执行异常
         str = input("Continue? (y/N)")
         if str == 'y' or str == 'Y':
-            for p in orders.keys():
+            for p in sorted(orders.keys(), reverse=reverse):
                 f = utils.get_store(friends, p)
                 if f != None:
                     order_text = utils.gen_order_text(orders, p)

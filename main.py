@@ -72,6 +72,11 @@ while True:
         print("报单完成")
         business_logic.send_order_file(today_order_file)
 
+    elif cmd == "rp": # 档口反序报单
+        business_logic.place_order(today_order_file, reverse=True)
+        print("报单完成")
+        business_logic.send_order_file(today_order_file)
+
     elif cmd == "ye":
         yo = xls_processor.XlsProcessor(yestoday_order_file)
         r = yo.calc_order_exceptions()
