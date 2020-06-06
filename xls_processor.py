@@ -358,7 +358,7 @@ class XlsProcessor():
     def _adjust_column_width(self, name, width):
         """调整列宽"""
         col = self._get_column_cn(name)
-        self.ws.column_dimensions[chr(ord('A') + col - 1)].width = width
+        self.ws.column_dimensions[utils.num_to_alphabet(col - 1)].width = width
 
     def format(self):
         self._open()
@@ -374,6 +374,31 @@ class XlsProcessor():
                 self.ws.insert_rows(i)
 
         # TODO: 插入行之后self.nrows不能再用
+
+        # 算账
+        nr_cn = self._get_column_cn('数量')
+        payed_cn = self._get_column_cn('实付')
+        cost_cn = self._get_column_cn('成本价')
+
+        amount_cn = cost_cn + 1
+        self.ws.cell(row=1, column=amount_cn).value = '金额'
+
+        # 公式模型：=IF(ISBLANK(L2),K2,IF(OR(L2="x",L2="X"),0, IF(ISNUMBER(L2), L2,K2))) *Q2
+        # K：数量
+        # L：实付
+        # Q：成本价
+        K = utils.num_to_alphabet(nr_cn - 1)
+        L = utils.num_to_alphabet(payed_cn - 1)
+        Q = utils.num_to_alphabet(cost_cn - 1)
+
+        for i in range(2, self.ws.max_row + 1):
+            if self.ws.cell(row=i, column=self.provider_cn).value is None and \
+                    self.ws.cell(row=i, column=self.code_cn).value is None:
+                continue
+
+            f = '=IF(ISBLANK({L}{ln}),{K}{ln},IF(OR({L}{ln}="x",{L}{ln}="X"),0, IF(ISNUMBER({L}{ln}), {L}{ln},{K}{ln}))) *{Q}{ln}'.format(
+                K=K, L=L, Q=Q, ln=i)
+            self.ws.cell(row=i, column=amount_cn).value = f
 
         # 交替填充款号背景
         gray_fill = sty.PatternFill(fill_type="solid", fgColor="F0F0F0")
@@ -431,6 +456,7 @@ class XlsProcessor():
         self._adjust_column_width("天数", 3)
         self._adjust_column_width("上限天数", 3)
         self._adjust_column_width("成本价",4)
+        self._adjust_column_width("金额", 6)
 
         for i in range(2, self.ws.max_row + 1):
             # 备注
@@ -460,7 +486,6 @@ class XlsProcessor():
                 m = re.search(r'[^0-9]+', s)
                 if m != None:
                     cell.fill = self.MODIFICARTION_FILL
-
 
         self._save()
         self._close()

@@ -10,6 +10,11 @@ import math
 # 测试时设为True
 TEST = False
 
+# 数字转字母
+# 0=>A, 1=>B, 2=>C，以此类推
+def num_to_alphabet(nr):
+    return chr(ord('A') + nr)
+
 def gen_order_text(orders, p):
     '''
     生成单个档口的报单文本
