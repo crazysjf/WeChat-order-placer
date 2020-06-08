@@ -6,7 +6,7 @@ import business_logic
 import xls_processor
 from goods_profile import GoodsProfile
 import os
-
+import re
 
 def usage():
     print('''test.py [options]
@@ -16,31 +16,6 @@ options:
  -y <昨日报表>,      指定昨日报表文件
  
  如果没有指任何报表文件，则自动分析。''')
-
-try:
-    options,args = getopt.getopt(sys.argv[1:],"hy:t:")
-except getopt.GetoptError:
-    usage()
-    sys.exit()
-
-today_order_file = None
-yestoday_order_file = None
-
-for name,value in options:
-    if name in ("-h",):
-        usage()
-    if name in ("-t",):
-        today_order_file = value
-    if name in ("-y",):
-        yestoday_order_file = value
-
-print("当日报表：", today_order_file)
-print("昨日报表：", yestoday_order_file)
-
-if today_order_file == None and yestoday_order_file == None:
-    print("参数不全")
-    usage()
-    exit()
 
 def help():
     print(
@@ -57,9 +32,63 @@ def help():
  q: 退出
  """)
 
+def print_file_info():
+    print("\n")
+    print("当日报表：", today_order_file)
+    print("昨日报表：", yesterday_order_file)
+    print("\n")
+    print("次品登记：", yesterday_defective_file)
+    print("商品资料：", goods_file)
+    print("\n")
+
+try:
+    options,args = getopt.getopt(sys.argv[1:],"hy:t:")
+except getopt.GetoptError:
+    usage()
+    sys.exit()
+
+today_order_file = None
+yesterday_order_file = None
+yesterday_defective_file = None # 次品文件
+goods_file = None # 商品资料文件
+
+for name,value in options:
+    if name in ("-h",):
+        usage()
+    if name in ("-t",):
+        today_order_file = value
+    if name in ("-y",):
+        yesterday_order_file = value
+
+if today_order_file == None and yesterday_order_file == None:
+    print("参数不全")
+    usage()
+    exit()
+
+# 在昨日报表文件夹中查找次品登记文件
+if yesterday_order_file is not None:
+    yof_dir = os.path.dirname(yesterday_order_file)
+    fs = os.listdir(yof_dir)
+    for f in fs:
+        m = re.match('采购退货.*\.xlsx$', f)
+        if m != None:
+            yesterday_defective_file = os.path.join(yof_dir, f)
+
+# 向上面最多追溯4级查找商品资料文件
+dir = yof_dir
+for i in range(0, 4):
+    dir = os.path.dirname(dir) # 路径向上走一级
+    fs = os.listdir(dir)
+    for f in fs:
+        m = re.match('商品资料.*\.xlsx$', f)
+        if m != None:
+            goods_file = os.path.join(dir, f)
+            break
+
+print_file_info()
 
 if utils.TEST == True:
-    utils.process_xls(today_order_file, yestoday_order_file)
+    utils.process_xls(today_order_file, yesterday_order_file)
     exit(0)
 
 while True:
@@ -78,7 +107,7 @@ while True:
         business_logic.send_order_file(today_order_file)
 
     elif cmd == "ye":
-        yo = xls_processor.XlsProcessor(yestoday_order_file)
+        yo = xls_processor.XlsProcessor(yesterday_order_file)
         r = yo.calc_order_exceptions()
         utils.print_exception_summary(r)
 
@@ -95,7 +124,7 @@ while True:
         if c != 'y' and c != 'Y':
             continue
 
-        yo = xls_processor.XlsProcessor(yestoday_order_file)
+        yo = xls_processor.XlsProcessor(yesterday_order_file)
         e = yo.calc_order_exceptions()
         utils.print_exception_summary(e)
         utils.backup_file(today_order_file)
@@ -109,11 +138,13 @@ while True:
 
 
     elif cmd == 'i':
-        print("当日报表文件：%s" % today_order_file)
-        print("昨日报表文件：%s" % yestoday_order_file)
+        print_file_info()
 
     elif cmd == 'x':
-        utils.process_xls(today_order_file, yestoday_order_file)
+        utils.process_xls(today_order_file, yesterday_order_file)
+
+    elif cmd == 'c':
+        utils.gen_defectives_data(yesterday_defective_file, goods_file)
 
     elif cmd == "q":
         exit()
