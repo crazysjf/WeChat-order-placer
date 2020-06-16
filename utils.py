@@ -383,8 +383,8 @@ def gen_defectives_data(yesterday_defective_file, goods_file):
     pd.options.display.max_rows = 1000
     pd.options.display.max_columns = 100
     pd.options.display.width = 300
-
-    print(tmp_df[['供应商名','供应商商品款号']])
+    #print(tmp_df)
+    print(tmp_df[['供应商名','供应商商品款号', '数量', '备注_y']])
 
 def process_xls(today_order_file, yestoday_order_file):
     '''处理聚水潭导出报表。代替原来VBA代码'''
