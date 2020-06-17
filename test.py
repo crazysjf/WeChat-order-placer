@@ -9,8 +9,18 @@ raw_data = {
         '数量': ['1', '2', '3', '4', '5']}
 df = pd.DataFrame(raw_data, columns = ['供应商', '供应商商品款号', '数量'])
 
-#print(df)
+raw_data2 = {
+        '数量': ['6', '7', '8', '9', '10'],
+        '供应商': ['A', 'B', 'C', 'D', 'E'],
+}
+df2 = pd.DataFrame(raw_data2, columns = ['数量', '供应商'])
+df = pd.concat([df, df2], axis=0)
 
+df['数量'] = df['数量'].apply(lambda n: '换' + str(n))
+df['颜色'] = '次品'
+print(df)
+
+exit(0)
 df2 = pd.DataFrame(columns = ['供应商', '供应商商品款号', '数量'])
 
 #print(df[df['供应商']=='1'])

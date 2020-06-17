@@ -88,7 +88,7 @@ for i in range(0, 4):
 print_file_info()
 
 if utils.TEST == True:
-    utils.process_xls(today_order_file, yesterday_order_file)
+    utils.process_xls(today_order_file, yesterday_order_file, yesterday_defective_file, goods_file)
     exit(0)
 
 while True:
@@ -141,7 +141,7 @@ while True:
         print_file_info()
 
     elif cmd == 'x':
-        utils.process_xls(today_order_file, yesterday_order_file)
+        utils.process_xls(today_order_file, yesterday_order_file, yesterday_defective_file, goods_file)
 
     elif cmd == 'c':
         utils.gen_defectives_data(yesterday_defective_file, goods_file)

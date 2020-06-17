@@ -8,7 +8,8 @@ import xls_processor
 import math
 
 # 测试时设为True
-TEST = False
+#TEST = False
+TEST = True
 
 # 数字转字母
 # 0=>A, 1=>B, 2=>C，以此类推
@@ -371,22 +372,59 @@ def calNum(l):
 
     return ret
 
-# 生成次品数据
 def gen_defectives_data(yesterday_defective_file, goods_file):
-    defective_df = pd.read_excel(yesterday_defective_file)
+    """
+    生成次品数据。
 
-    print("正在解析商品资料...")
-    goods_df = pd.read_excel(goods_file)
-    print("完成")
-    tmp_df = pd.merge(defective_df, goods_df, how='left', left_on="商品编码", right_on="商品编码")
+    :param yesterday_defective_file: 昨日扫描生成的次品登记文件
+    :param goods_file:  普通商品资料导出文件
+    :return: data_frame, 形式：
+    商品编码    供应商         供应商商品款号     数量      价格  备注
+    xxx         xxx           xxx                xxx      xxx   xxx
+
+    忽略尺码和颜色，返回数量是同款各个数量之和
+    """
+    try:
+        df = pd.read_excel(yesterday_defective_file)
+        print("正在解析商品资料...")
+        goods_df = pd.read_excel(goods_file)
+
+        print("完成")
+    except:
+        print("次品登记文件读取异常")
+        return None
+
+    df = pd.merge(df, goods_df, how='left', left_on="商品编码", right_on="商品编码")
+
+    # merge之后的表头：
+    # 图片     退货单号       仓库       供应商  采购单号               单据日期   状态  备注_x  物流公司  物流单号
+    # 商品编码  商品名称 颜色及规格_x  数量  单价  成本价比例  基本售价_x  金额  财审人  财审日期  备注1        款式编号  供应商货号  创建人  标记多标签
+    # 图片地址        款式编码        国际条形码   商品名  商品简称 商品属性  单位 颜色及规格_y  基本售价_y  市场|吊牌价
+    # 成本价  其它价格1  其它价格2  其它价格3  重量   仓位   分类  虚拟分类       供应商名      供应商编号  供应商商品编码
+    # 供应商商品款号  品牌 备注_y                创建时间                修改时间  库存同步  自动上架
+
 
     pd.options.display.max_rows = 1000
     pd.options.display.max_columns = 100
     pd.options.display.width = 300
-    #print(tmp_df)
-    print(tmp_df[['供应商名','供应商商品款号', '数量', '备注_y']])
 
-def process_xls(today_order_file, yestoday_order_file):
+    ret_df = df.drop_duplicates(subset=['供应商', '供应商商品款号'], keep='first')
+
+    # TODO：如果有编码没有供应商和供应商商品编码的，要提示更新商品资料文件
+    # TODO: 加入过滤某个供应商的功能
+
+    for r in ret_df.index:
+        provider = ret_df.loc[r]["供应商"]
+        code = ret_df.loc[r]["供应商商品款号"]
+        tmp_df = df[(df['供应商'] == provider) & (df['供应商商品款号'] == code)]
+        sum = tmp_df['数量'].apply(lambda x: int(x)).sum() # 求和
+        ret_df.loc[r, '数量'] = sum
+    ret = ret_df[['商品编码', '供应商', "供应商商品款号", "数量", "成本价", "备注_y"]]
+
+    return ret
+
+
+def process_xls(today_order_file, yestoday_order_file, yesterday_defective_file=None, goods_file=None):
     '''处理聚水潭导出报表。代替原来VBA代码'''
     # test
     # pd.options.display.max_columns = 100
@@ -406,6 +444,18 @@ def process_xls(today_order_file, yestoday_order_file):
     df.insert(c, "实付", "")
     df.insert(c, "数量", "")
 
+    # 计算数量列
+    num = df.apply(calNum, axis=1)
+    df['数量'] = num
+
+    # 处理次品
+    if yesterday_defective_file is not None:
+        defe_df = gen_defectives_data(yesterday_defective_file, goods_file)
+        if defe_df is not None:
+            defe_df['数量'] = defe_df['数量'].apply(lambda n: '换' + str(n))  # 次品数量前面 + 换
+            defe_df['供应商商品款号'] = defe_df['供应商商品款号'].apply(lambda n: str(n) + "(次)")  # 次品编码后面 + 次
+            df['颜色规格'] = '次品'
+            df = pd.concat([df, defe_df], axis=0, sort=False)
 
     # 处理**报
     for ridx in df.index:
@@ -423,12 +473,6 @@ def process_xls(today_order_file, yestoday_order_file):
                     df.loc[ridx, '颜色规格'] = ret['spec']
                 if ret['price'] is not None:
                     df.loc[ridx, '成本价'] = float(ret['price'])
-
-
-
-    # 计算数量列
-    num = df.apply(calNum, axis=1)
-    df['数量'] = num
 
 
     # 插入异常
