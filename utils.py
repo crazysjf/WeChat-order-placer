@@ -8,8 +8,8 @@ import xls_processor
 import math
 
 # 测试时设为True
-#TEST = False
-TEST = True
+TEST = False
+#TEST = True
 
 # 数字转字母
 # 0=>A, 1=>B, 2=>C，以此类推
@@ -379,8 +379,8 @@ def gen_defectives_data(yesterday_defective_file, goods_file):
     :param yesterday_defective_file: 昨日扫描生成的次品登记文件
     :param goods_file:  普通商品资料导出文件
     :return: data_frame, 形式：
-    商品编码    供应商         供应商商品款号     数量      价格  备注
-    xxx         xxx           xxx                xxx      xxx   xxx
+    款式编码  商品编码    供应商         供应商商品款号     数量      价格  备注
+    xxx       xxx         xxx           xxx                xxx      xxx   xxx
 
     忽略尺码和颜色，返回数量是同款各个数量之和
     """
@@ -409,6 +409,7 @@ def gen_defectives_data(yesterday_defective_file, goods_file):
     pd.options.display.width = 300
 
     ret_df = df.drop_duplicates(subset=['供应商', '供应商商品款号'], keep='first')
+    ret_df = ret_df.copy() # 不加这行会出现set on a copy of a slice from a DataFrame warning。具体原因不明
 
     # TODO：如果有编码没有供应商和供应商商品编码的，要提示更新商品资料文件
     # TODO: 加入过滤某个供应商的功能
@@ -419,8 +420,8 @@ def gen_defectives_data(yesterday_defective_file, goods_file):
         tmp_df = df[(df['供应商'] == provider) & (df['供应商商品款号'] == code)]
         sum = tmp_df['数量'].apply(lambda x: int(x)).sum() # 求和
         ret_df.loc[r, '数量'] = sum
-    ret = ret_df[['商品编码', '供应商', "供应商商品款号", "数量", "成本价", "备注_y"]]
-
+    ret = ret_df[['款式编码','商品编码', '供应商名', "供应商商品款号", "数量", "成本价", "备注_y"]]
+    ret.rename(columns={"供应商名":"供应商", "备注_y":"商品备注", "供应商商品款号":"供应商款号"}, inplace=True)
     return ret
 
 
@@ -453,9 +454,10 @@ def process_xls(today_order_file, yestoday_order_file, yesterday_defective_file=
         defe_df = gen_defectives_data(yesterday_defective_file, goods_file)
         if defe_df is not None:
             defe_df['数量'] = defe_df['数量'].apply(lambda n: '换' + str(n))  # 次品数量前面 + 换
-            defe_df['供应商商品款号'] = defe_df['供应商商品款号'].apply(lambda n: str(n) + "(次)")  # 次品编码后面 + 次
-            df['颜色规格'] = '次品'
+            defe_df['供应商款号'] = defe_df['供应商款号'].apply(lambda n: str(n) + "(次)")  # 次品编码后面 + 次
+            defe_df['颜色规格'] = '次品'
             df = pd.concat([df, defe_df], axis=0, sort=False)
+            df.reset_index(inplace=True) # 连接后索引必须重置
 
     # 处理**报
     for ridx in df.index:
@@ -539,9 +541,9 @@ def process_xls(today_order_file, yestoday_order_file, yesterday_defective_file=
         if code == code: # 商品编码不为空
             (p, c, s, *_) = code.split('-')
 
-            if     not p.upper() in l['供应商'].upper() or \
-                    not c.upper() in l['供应商款号'].upper() or \
-                    not s.upper() in l['颜色规格'].upper():
+            if     not p.upper() in str(l['供应商']).upper() or \
+                    not c.upper() in str(l['供应商款号']).upper() or \
+                    not s.upper() in str(l['颜色规格']).upper():
 
                 #print(code, l['供应商'],l['供应商款号'],l['颜色规格'])
                 #print(anno, code)
@@ -561,8 +563,18 @@ def process_xls(today_order_file, yestoday_order_file, yesterday_defective_file=
     # 排序
     # 供应商转大写后排序，然后删除，保留原供应商大小写，以免异常插入出问题
     df['供应商大写'] = df['供应商'].apply(lambda p: str(p).upper())
-    df = df.sort_values(["供应商大写","供应商款号","颜色规格"])
+
+    # 对一个档口，档口次品排所有商品之后
+    def is_defe(x):
+        if '次' in str(x):
+            return 1
+        else:
+            return 0
+    df['是否次品'] = df["供应商款号"].apply(is_defe)
+
+    df = df.sort_values(["供应商大写","是否次品", "供应商款号","颜色规格"])
     del df['供应商大写']
+    del df['是否次品']
 
 
     # 删除不报单商品：收清销低商品 ,但不包含欠、换

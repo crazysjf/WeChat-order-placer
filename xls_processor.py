@@ -97,7 +97,12 @@ class XlsProcessor():
             order_line['spec'] = self.ws.cell(row=i, column=spec_cn).value
             order_line['nr'] = utils.convert_possible_num_to_str(self.ws.cell(row=i, column=nr_cn).value)
 
-            provider_order.append(order_line)
+            # 如果是第一次换次品，则次品不报单，避免次品没有送过去，档口看不懂报表
+            # 如果当天没有换回，第二天会变成欠货，则会报单
+            if '次品' in str(order_line['spec']) and '换' in order_line['nr']:
+                pass
+            else:
+                provider_order.append(order_line)
 
             if provider in orders:
                 orders[provider].append(order_line)
@@ -467,6 +472,17 @@ class XlsProcessor():
                 cell.alignment = Alignment(vertical='center',wrapText=True)
 
             if '收' in notation or "清" in notation or "销低" in notation:
+                cell.fill = yellow_fill
+
+            # 次品
+            cell = self.ws.cell(row=i, column=self.code_cn)
+            code = str(cell.value)
+            if '次' in code:
+                cell.fill = yellow_fill
+
+            cell = self.ws.cell(row=i, column=self.spec_cn)
+            spec = str(cell.value)
+            if '次' in spec:
                 cell.fill = yellow_fill
 
             # 天数
