@@ -8,9 +8,6 @@ import xls_processor
 import math
 import constants
 
-# 测试时设为True
-#TEST = False
-TEST = True
 
 # 数字转字母
 # 0=>A, 1=>B, 2=>C，以此类推
@@ -625,7 +622,7 @@ def process_xls(today_order_file, yestoday_order_file, yesterday_defective_file=
     df = df.append(df_no_place, ignore_index=True)
 
     # 输出
-    if TEST == True:
+    if constants.TEST == True:
         f = os.path.dirname(today_order_file) + "\测试结果.xlsx"
         df.to_excel(f, index=False)
         xls_processor.XlsProcessor(f).format()

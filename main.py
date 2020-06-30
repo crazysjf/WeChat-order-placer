@@ -7,6 +7,7 @@ import xls_processor
 from goods_profile import GoodsProfile
 import os
 import re
+import constants
 
 def usage():
     print('''test.py [options]
@@ -87,7 +88,7 @@ for i in range(0, 4):
 
 print_file_info()
 
-if utils.TEST == True:
+if constants.TEST == True:
     utils.process_xls(today_order_file, yesterday_order_file, yesterday_defective_file, goods_file)
     exit(0)
 
