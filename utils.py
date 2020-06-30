@@ -8,8 +8,8 @@ import xls_processor
 import math
 
 # 测试时设为True
-TEST = False
-#TEST = True
+#TEST = False
+TEST = True
 
 # 数字转字母
 # 0=>A, 1=>B, 2=>C，以此类推
@@ -408,11 +408,23 @@ def gen_defectives_data(yesterday_defective_file, goods_file):
     pd.options.display.max_columns = 100
     pd.options.display.width = 300
 
-    ret_df = df.drop_duplicates(subset=['供应商', '供应商商品款号'], keep='first')
-    ret_df = ret_df.copy() # 不加这行会出现set on a copy of a slice from a DataFrame warning。具体原因不明
+    # 无供应商警告
+    for rIndex in df.index:
+        l = df.loc[rIndex]
+        p = l['供应商名']
+        if p != p: # p为 Nan
+            print("%s无供应商，需要更新商品资料" % l['商品编码'])
 
-    # TODO：如果有编码没有供应商和供应商商品编码的，要提示更新商品资料文件
+            # 给为Nan的供应商名和供应商款号赋值，避免在后面的drop_duplicates时被删除
+            df.loc[rIndex, "供应商名"] = l['商品编码']
+            df.loc[rIndex, "供应商商品款号"] = l['商品编码']
+
     # TODO: 加入过滤某个供应商的功能
+
+
+
+    ret_df = df.drop_duplicates(subset=['供应商名', '供应商商品款号'], keep='first')
+    ret_df = ret_df.copy() # 不加这行会出现set on a copy of a slice from a DataFrame warning。具体原因不明
 
     for r in ret_df.index:
         provider = ret_df.loc[r]["供应商"]
