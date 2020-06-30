@@ -6,6 +6,7 @@ import os
 import pandas as pd
 import xls_processor
 import math
+import constants
 
 # 测试时设为True
 #TEST = False
@@ -378,11 +379,16 @@ def gen_defectives_data(yesterday_defective_file, goods_file):
 
     :param yesterday_defective_file: 昨日扫描生成的次品登记文件
     :param goods_file:  普通商品资料导出文件
-    :return: data_frame, 形式：
+    :return: (defe_df, ignored_defe_good_df),
+    defe_df: 次品数据
+    形式：
     款式编码  商品编码    供应商         供应商商品款号     数量      价格  备注
     xxx       xxx         xxx           xxx                xxx      xxx   xxx
 
     忽略尺码和颜色，返回数量是同款各个数量之和
+
+    ignored_defe_good_df：根据需要忽略掉的供应商次品数据。
+
     """
     try:
         df = pd.read_excel(yesterday_defective_file)
@@ -392,7 +398,7 @@ def gen_defectives_data(yesterday_defective_file, goods_file):
         print("完成")
     except:
         print("次品登记文件读取异常")
-        return None
+        return None, None
 
     df = pd.merge(df, goods_df, how='left', left_on="商品编码", right_on="商品编码")
 
@@ -419,8 +425,9 @@ def gen_defectives_data(yesterday_defective_file, goods_file):
             df.loc[rIndex, "供应商名"] = l['商品编码']
             df.loc[rIndex, "供应商商品款号"] = l['商品编码']
 
-    # TODO: 加入过滤某个供应商的功能
-
+    # 过滤滤指定供应商
+    ignored_defe_df = df[df["供应商名"].apply(lambda p: p in constants.PROVIDERS_IGNORING_DEFECTIVE_GOODS)]
+    df = df[df["供应商名"].apply(lambda p: p not in constants.PROVIDERS_IGNORING_DEFECTIVE_GOODS)]
 
 
     ret_df = df.drop_duplicates(subset=['供应商名', '供应商商品款号'], keep='first')
@@ -432,9 +439,16 @@ def gen_defectives_data(yesterday_defective_file, goods_file):
         tmp_df = df[(df['供应商'] == provider) & (df['供应商商品款号'] == code)]
         sum = tmp_df['数量'].apply(lambda x: int(x)).sum() # 求和
         ret_df.loc[r, '数量'] = sum
-    ret = ret_df[['款式编码','商品编码', '供应商名', "供应商商品款号", "数量", "成本价", "备注_y"]]
-    ret.rename(columns={"供应商名":"供应商", "备注_y":"商品备注", "供应商商品款号":"供应商款号"}, inplace=True)
-    return ret
+
+    def _process(df):
+        df = df[['款式编码','商品编码', '供应商名', "供应商商品款号", "数量", "成本价", "备注_y"]]
+        df.rename(columns={"供应商名":"供应商", "备注_y":"商品备注", "供应商商品款号":"供应商款号"}, inplace=True)
+        return df
+
+    (ret_df, ignored_defe_df) = map(_process, (ret_df, ignored_defe_df))
+    # ret = ret_df[['款式编码','商品编码', '供应商名', "供应商商品款号", "数量", "成本价", "备注_y"]]
+    # ret.rename(columns={"供应商名":"供应商", "备注_y":"商品备注", "供应商商品款号":"供应商款号"}, inplace=True)
+    return (ret_df, ignored_defe_df)
 
 
 def process_xls(today_order_file, yestoday_order_file, yesterday_defective_file=None, goods_file=None):
@@ -463,13 +477,17 @@ def process_xls(today_order_file, yestoday_order_file, yesterday_defective_file=
 
     # 处理次品
     if yesterday_defective_file is not None:
-        defe_df = gen_defectives_data(yesterday_defective_file, goods_file)
+        (defe_df, ignored_df) = gen_defectives_data(yesterday_defective_file, goods_file)
         if defe_df is not None:
             defe_df['数量'] = defe_df['数量'].apply(lambda n: '换' + str(n))  # 次品数量前面 + 换
             defe_df['供应商款号'] = defe_df['供应商款号'].apply(lambda n: str(n) + "(次)")  # 次品编码后面 + 次
             defe_df['颜色规格'] = '次品'
             df = pd.concat([df, defe_df], axis=0, sort=False)
             df.reset_index(inplace=True) # 连接后索引必须重置
+
+        if ignored_df is not None and len(ignored_df) > 0:
+            f = os.path.dirname(today_order_file) + "\未上报次品.xlsx"
+            ignored_df.to_excel(f, index=False)
 
     # 处理**报
     for ridx in df.index:
