@@ -397,6 +397,7 @@ def gen_defectives_data(yesterday_defective_file, goods_file):
         print("次品登记文件读取异常")
         return None, None
 
+
     df = pd.merge(df, goods_df, how='left', left_on="商品编码", right_on="商品编码")
 
     # merge之后的表头：
@@ -434,12 +435,12 @@ def gen_defectives_data(yesterday_defective_file, goods_file):
         provider = ret_df.loc[r]["供应商"]
         code = ret_df.loc[r]["供应商商品款号"]
         tmp_df = df[(df['供应商'] == provider) & (df['供应商商品款号'] == code)]
-        sum = tmp_df['数量'].apply(lambda x: int(x)).sum() # 求和
-        ret_df.loc[r, '数量'] = sum
+        sum = tmp_df['退货数量'].apply(lambda x: int(x)).sum() # 求和
+        ret_df.loc[r, '退货数量'] = sum
 
     def _process(df):
-        df = df[['款式编码','商品编码', '供应商名', "供应商商品款号", "数量", "成本价", "备注_y"]]
-        df.rename(columns={"供应商名":"供应商", "备注_y":"商品备注", "供应商商品款号":"供应商款号"}, inplace=True)
+        df = df[['款式编码','商品编码', '供应商名', "供应商商品款号", "退货数量", "成本价", "备注"]]
+        df.rename(columns={"供应商名":"供应商", "供应商商品款号":"供应商款号", "退货数量":"数量", "备注":"商品备注", }, inplace=True)
         return df
 
     (ret_df, ignored_defe_df) = map(_process, (ret_df, ignored_defe_df))
