@@ -75,16 +75,16 @@ if yesterday_order_file is not None:
         if m != None:
             yesterday_defective_file = os.path.join(yof_dir, f)
 
-# 向上面最多追溯4级查找商品资料文件
-dir = yof_dir
-for i in range(0, 4):
-    dir = os.path.dirname(dir) # 路径向上走一级
-    fs = os.listdir(dir)
-    for f in fs:
-        m = re.match('商品资料.*\.xlsx$', f)
-        if m != None:
-            goods_file = os.path.join(dir, f)
-            break
+    # 向上面最多追溯4级查找商品资料文件
+    dir = yof_dir
+    for i in range(0, 4):
+        dir = os.path.dirname(dir) # 路径向上走一级
+        fs = os.listdir(dir)
+        for f in fs:
+            m = re.match('商品资料.*\.xlsx$', f)
+            if m != None:
+                goods_file = os.path.join(dir, f)
+                break
 
 print_file_info()
 
