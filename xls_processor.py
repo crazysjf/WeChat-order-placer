@@ -99,15 +99,15 @@ class XlsProcessor():
 
             # 如果是第一次换次品，则次品不报单，避免次品没有送过去，档口看不懂报表
             # 如果当天没有换回，第二天会变成欠货，则会报单
-            if '次品' in str(order_line['spec']) and '换' in order_line['nr']:
+            if ('次品' in str(order_line['spec'])) and ('换' in order_line['nr']):
                 pass
             else:
                 provider_order.append(order_line)
 
-            if provider in orders:
-                orders[provider].append(order_line)
-            else:
-                orders[provider] = [order_line]
+                if provider in orders:
+                    orders[provider].append(order_line)
+                else:
+                    orders[provider] = [order_line]
 
         self._close()
         return orders
