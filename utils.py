@@ -60,14 +60,14 @@ def gen_order_text(orders, p):
         text = '报单生成错误'
     return text
 
-def print_exception_summary(r):
+def gen_exception_summary(r):
     '''
     打印到货异常汇总。
     :param r: 异常字典
-    :return: 
+    :return:
     '''
-    print("\n拿货异常：")
-    print("-------------------")
+    s = "\n拿货异常：\n"
+    s = s + "-------------------\n"
 
     e_cnt = 0
     for p in r.keys():
@@ -75,10 +75,30 @@ def print_exception_summary(r):
         for l in lines:
             e_cnt = e_cnt + 1
             e_str = "%s: %s, %s, "  % (p, l['code'], l['spec']) + gen_text_for_one_exception_line(l)
-            print(e_str)
-        print("-------------------")
-    print("档口数： % s，异常数： % s\n" % (len(r.keys()), e_cnt))
+            s = s + e_str + "\n"
+        s = s + "\n-------------------\n\n"
+    s = s + "档口数： % s，异常数： % s\n\n" % (len(r.keys()), e_cnt)
+    return s
 
+def print_exception_summary(r):
+    # '''
+    # 打印到货异常汇总。
+    # :param r: 异常字典
+    # :return:
+    # '''
+    # print("\n拿货异常：")
+    # print("-------------------")
+    #
+    # e_cnt = 0
+    # for p in r.keys():
+    #     lines = r[p]
+    #     for l in lines:
+    #         e_cnt = e_cnt + 1
+    #         e_str = "%s: %s, %s, "  % (p, l['code'], l['spec']) + gen_text_for_one_exception_line(l)
+    #         print(e_str)
+    #     print("-------------------")
+    # print("档口数： % s，异常数： % s\n" % (len(r.keys()), e_cnt))
+    print(gen_exception_summary(r))
 
 def gen_all_orders_text(orders):
     s = u''
