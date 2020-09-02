@@ -10,9 +10,8 @@ from PySide2.QtCore import Slot
 
 
 
-class MainWidget(QWidget):
+class MainWidget():
     def __init__(self):
-        super(MainWidget, self).__init__()
         #QHBoxLayout * layout = new   QHBoxLayout;
         #self.setLayout(QHBoxLayout())
         self.load_ui()
@@ -22,25 +21,30 @@ class MainWidget(QWidget):
         path = os.path.join(os.path.dirname(__file__), "MainUI/form.ui")
         ui_file = QFile(path)
         ui_file.open(QFile.ReadOnly)
-        self.ui = loader.load(ui_file, self)
+        self.ui = loader.load(ui_file)
         ui_file.close()
 
         self.ui.pushButton_refresh_exceptions.clicked.connect(self.refresh_exceptions)
-        self.setAcceptDrops(True)
+
+        return self.ui
+
+    def show(self):
+        self.ui.show()
 
     def refresh_exceptions(self):
-
-        file = self.ui.textEdit_file.toPlainText()
-        print(file)
-        file = file.lstrip("file:///")
-        to = xls_processor.XlsProcessor(file)
-        r = to.calc_order_exceptions()
-        t = utils.gen_exception_summary(r)
-        self.ui.plainTextEdit_exceptions.setPlainText(t)
-
+        try:
+            file = self.ui.textEdit_file.toPlainText()
+            file = file.lstrip("file:///")
+            to = xls_processor.XlsProcessor(file)
+            r = to.calc_order_exceptions()
+            t = utils.gen_exception_summary(r)
+            self.ui.plainTextEdit_exceptions.setPlainText(t)
+        except:
+            self.ui.plainTextEdit_exceptions.setPlainText(str(sys.exc_info()[0]))
 
 if __name__ == "__main__":
     app = QApplication([])
-    widget = MainWidget()
-    widget.show()
+    mw = MainWidget()
+    mw.show()
+
     sys.exit(app.exec_())
