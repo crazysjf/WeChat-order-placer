@@ -1,12 +1,11 @@
 # This Python file uses the following encoding: utf-8
 import sys
-import os
+from os import path
 import xls_processor, utils
 
-from PySide2.QtWidgets import QApplication, QWidget, QHBoxLayout
+from PySide2.QtWidgets import QApplication
 from PySide2.QtCore import QFile
 from PySide2.QtUiTools import QUiLoader
-from PySide2.QtCore import Slot
 
 
 
@@ -18,8 +17,13 @@ class MainWidget():
 
     def load_ui(self):
         loader = QUiLoader()
-        path = os.path.join(os.path.dirname(__file__), "MainUI/form.ui")
-        ui_file = QFile(path)
+        #path = os.path.join(os.path.dirname(__file__), "MainUI/form.ui")
+
+        # 用pyinstaller打包时需要使用以下方式指定数据文件路径
+        bundle_dir = getattr(sys, '_MEIPASS', path.abspath(path.dirname(__file__)))
+        path_to_dat = path.abspath(path.join(bundle_dir, "MainUI/form.ui"))
+
+        ui_file = QFile(path_to_dat)
         ui_file.open(QFile.ReadOnly)
         self.ui = loader.load(ui_file)
         ui_file.close()

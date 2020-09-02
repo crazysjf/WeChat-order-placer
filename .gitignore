@@ -2,4 +2,6 @@
 *.pkl
 *.xlsx
 *.pyc
-
+dist/
+build/
+*.spec
