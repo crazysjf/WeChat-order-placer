@@ -560,7 +560,7 @@ def process_xls(today_order_file, yestoday_order_file, yesterday_defective_file=
 
 
             else: # 报表有异常，有重复行
-                print("报表异常，多个位置发现同样商品：", list)
+                print("报表异常，多个位置发现同样商品：", p, l, list)
 
 
     # 计算天数
