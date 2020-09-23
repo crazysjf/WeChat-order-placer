@@ -625,9 +625,28 @@ def process_xls(today_order_file, yestoday_order_file, yesterday_defective_file=
             return 0
     df['是否次品'] = df["供应商款号"].apply(is_defe)
 
-    df = df.sort_values(["供应商大写","是否次品", "供应商款号","颜色规格"])
+    # 尺码按常识排序
+    def size_to_num(x):
+        x = str(x).upper()
+        map = (('XXXS', '1'),  ('XXXL','9'),
+               ('XXS','2'), ('XXL','8'),
+               ('XS','3'), ('XL','7'),
+               ('S','4'),('M','5'),('L','6'))
+        for t in map:
+            s = t[0]
+            num = t[1]
+            if s in x:
+                return x.replace(s,num)
+        return x
+
+    df['尺码改数字'] = df["颜色规格"].apply(size_to_num)
+
+
+
+    df = df.sort_values(["供应商大写","是否次品", "供应商款号","尺码改数字"])
     del df['供应商大写']
     del df['是否次品']
+    del df['尺码改数字']
 
 
     # 删除不报单商品：收清销低商品 ,但不包含欠、换
