@@ -587,7 +587,12 @@ def process_xls(today_order_file, yestoday_order_file, yesterday_defective_file=
             anno = ""
 
         if code == code: # 商品编码不为空
-            (p, c, s, *_) = code.split('-')
+            #(p, c, s, *_) = code.split('-')
+            # 不要用tupple unpack以防编码格式不对导致异常
+            splited = code.split('-')
+            p = splited[0]
+            c = splited[1] if len(splited) > 1 else ""
+            s = splited[2] if len(splited) > 2 else ""
 
             if     not p.upper() in str(l['供应商']).upper() or \
                     not c.upper() in str(l['供应商款号']).upper() or \
