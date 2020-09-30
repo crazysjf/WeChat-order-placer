@@ -53,6 +53,11 @@ def gen_order_text(orders, p):
         text = text + u" - 不能送拼包请联系工仔(15986644447，小郑)或报单微信。\n"
 
 
+        text = text + u"\n\n - 大家都很忙，麻烦各位开实数单，不要欠货，减少对账麻烦。\n"
+        text = text + u" - 欠货会导致第二天不报单，影响彼此业务。\n"
+        text = text + u" - 感谢开实数单的各位的支持。\n"
+
+
 
 
 
