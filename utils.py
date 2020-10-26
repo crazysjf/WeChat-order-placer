@@ -504,7 +504,8 @@ def process_xls(today_order_file, yestoday_order_file, yesterday_defective_file=
         if defe_df is not None:
             defe_df['数量'] = defe_df['数量'].apply(lambda n: '换' + str(n))  # 次品数量前面 + 换
             defe_df['供应商款号'] = defe_df['供应商款号'].apply(lambda n: str(n) + "(次)")  # 次品编码后面 + 次
-            defe_df['颜色规格'] = '次品'
+            defe_df['颜色规格'] = '次品' + date.today().strftime("-%m.%d")
+
             df = pd.concat([df, defe_df], axis=0, sort=False)
             df.reset_index(inplace=True) # 连接后索引必须重置
 
