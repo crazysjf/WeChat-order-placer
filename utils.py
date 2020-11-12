@@ -56,6 +56,7 @@ def gen_order_text(orders, p):
         text = text + u"\n\n - 大家都很忙，麻烦各位开实数单，不要欠货，减少对账麻烦。\n"
         text = text + u" - 欠货会导致第二天不报单，影响彼此业务。\n"
         text = text + u" - 感谢开实数单的各位的支持。\n"
+        #text = text + u"\n 仓库忙不过来，今天是简化报单，明天恢复正常。\n"
 
 
 
@@ -457,9 +458,9 @@ def gen_defectives_data(yesterday_defective_file, goods_file):
     ret_df = ret_df.copy() # 不加这行会出现set on a copy of a slice from a DataFrame warning。具体原因不明
 
     for r in ret_df.index:
-        provider = ret_df.loc[r]["供应商"]
+        provider = ret_df.loc[r]["供应商名"]
         code = ret_df.loc[r]["供应商商品款号"]
-        tmp_df = df[(df['供应商'] == provider) & (df['供应商商品款号'] == code)]
+        tmp_df = df[(df['供应商名'] == provider) & (df['供应商商品款号'] == code)]
         sum = tmp_df['退货数量'].apply(lambda x: int(x)).sum() # 求和
         ret_df.loc[r, '退货数量'] = sum
 
@@ -515,7 +516,10 @@ def process_xls(today_order_file, yestoday_order_file, yesterday_defective_file=
 
     # 处理**报
     for ridx in df.index:
-        #print(df.loc[ridx])
+        # 次品忽略**报
+        if "次" in str(df.loc[ridx]['供应商款号']):
+            continue
+
         notation = df.loc[ridx]['商品备注']
         if notation == notation: # nan判断: nan!=nan, 备注为空的时候，这里值为nan
             ret = analyze_annotaion(notation)
