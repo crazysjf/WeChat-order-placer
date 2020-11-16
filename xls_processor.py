@@ -31,6 +31,7 @@ class XlsProcessor():
         self.payed_cn = self._get_column_cn("实付")
         self.received_cn = self._get_column_cn("实拿")
         self.notation_cn = self._get_column_cn("商品备注")
+        self.cost_cn = self._get_column_cn("成本价")
         self.sum_cn = self._get_column_cn("金额")
 
 
@@ -451,6 +452,8 @@ class XlsProcessor():
 
         day_cn = self._get_column_cn('天数')
         nr_cn = self._get_column_cn('数量')
+        suggested_nr_cn = self._get_column_cn('建议采购数')
+        #cost_cn = self._get_column_cn('成本价')
         #self.ws.column_dimensions[chr(ord('A') + self.notation_cn - 1)].width = "20"
 
         self._adjust_column_width("款式编码", 15)
@@ -498,11 +501,22 @@ class XlsProcessor():
 
             # 有异常的填红色背景
             cell = self.ws.cell(row=i, column=nr_cn)
-            if cell.value is  not None:
+            if cell.value is not None:
                 s = str(cell.value)
                 m = re.search(r'[^0-9]+', s)
                 if m != None:
                     cell.fill = self.MODIFICARTION_FILL
+
+            # 成本价大于阈值，且销小于3的，成本价高亮
+            cell = self.ws.cell(row=i, column=cost_cn)
+            s =  cell.value
+            cost = int(s) if s is not None else 0
+
+            s = self.ws.cell(row=i, column=suggested_nr_cn).value
+            suggested_nr = int(s) if s is not None else 0
+
+            if cost >= constants.COST_PRICE_HIGHT_THRESHOLD and suggested_nr <= 3:
+                cell.fill = self.MODIFICARTION_FILL
 
         self._save()
         self._close()
