@@ -112,10 +112,20 @@ while True:
         r = yo.calc_order_exceptions()
         utils.print_exception_summary(r)
 
+    elif cmd == "ype": # 仅显示欠货为正数的异常
+        to = xls_processor.XlsProcessor(yesterday_order_file)
+        r = to.calc_order_exceptions()
+        utils.print_exception_summary(r, only_positive = True)
+
     elif cmd == "te":
         to = xls_processor.XlsProcessor(today_order_file)
         r = to.calc_order_exceptions()
         utils.print_exception_summary(r)
+
+    elif cmd == "tpe": # 仅显示欠货为正数的异常
+        to = xls_processor.XlsProcessor(today_order_file)
+        r = to.calc_order_exceptions()
+        utils.print_exception_summary(r, only_positive = True)
 
     elif cmd == "ste":
         business_logic.send_today_exceptions(today_order_file)

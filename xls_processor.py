@@ -188,12 +188,12 @@ class XlsProcessor():
                 continue
 
             nr =  utils.convert_possible_num_to_str(self.ws.cell(row=i, column=self.nr_cn).value)
-            payed = utils.convert_possible_num_to_str(self.ws.cell(row=i, column=self.payed_cn).value)
-            received = utils.convert_possible_num_to_str(self.ws.cell(row=i, column=self.received_cn).value)
+            payed_s = utils.convert_possible_num_to_str(self.ws.cell(row=i, column=self.payed_cn).value)
+            received_s = utils.convert_possible_num_to_str(self.ws.cell(row=i, column=self.received_cn).value)
             abnormal_cn = self.sum_cn + 1 # 异常列。该列如果不为空，表示有异常，备注需要发送给档口
             abnormal = utils.convert_possible_num_to_str(self.ws.cell(row=i, column=abnormal_cn).value)
             notation = utils.convert_possible_num_to_str(self.ws.cell(row=i, column=self.notation_cn).value)
-            _, e = utils.calc_received_exceptions(nr, payed, received)
+            received, e = utils.calc_received_exceptions(nr, payed_s, received_s)
 
             # if abnormal != None:
             #     print('标记异常', i, notation)
