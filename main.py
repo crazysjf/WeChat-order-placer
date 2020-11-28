@@ -5,6 +5,7 @@ import getopt
 import business_logic
 import xls_processor
 from goods_profile import GoodsProfile
+from good_op_log import GoodsOpLog
 import os
 import re
 import constants
@@ -40,6 +41,7 @@ def print_file_info():
     print("\n")
     print("次品登记：", yesterday_defective_file)
     print("商品资料：", goods_file)
+    print("商品操作日志：", good_op_log_file)
     print("\n")
 
 try:
@@ -52,6 +54,8 @@ today_order_file = None
 yesterday_order_file = None
 yesterday_defective_file = None # 次品文件
 goods_file = None # 商品资料文件
+good_op_log_file = None # 商品操作日志
+
 
 for name,value in options:
     if name in ("-h",):
@@ -85,6 +89,14 @@ if yesterday_order_file is not None:
             if m != None:
                 goods_file = os.path.join(dir, f)
                 break
+
+dir = os.path.dirname(today_order_file)
+fs = os.listdir(dir)
+for f in fs:
+    m = re.match('[^~]*商品操作日志.*\.xlsx$', f)
+    if m != None:
+        good_op_log_file = os.path.join(dir, f)
+        break
 
 print_file_info()
 
@@ -133,6 +145,9 @@ while True:
     elif cmd == "rte":
         # 刷新今日异常，直接在当前报表上操作
         xls_processor.XlsProcessor(today_order_file).refresh_today_exceptions()
+
+    elif cmd == "gof":
+        GoodsOpLog(good_op_log_file).test()
 
     elif cmd == "iye":
         c = input('iye命令已废除，确定要使用？(y/N)：')
