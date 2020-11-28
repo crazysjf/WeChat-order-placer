@@ -42,6 +42,8 @@ def place_order(order_file, reverse=False):
             for p in sorted(orders.keys(), reverse=reverse):
                 f = utils.get_store(friends, p)
                 if f != None:
+
+
                     order_text = utils.gen_order_text(orders, p)
                     itchat.send(order_text, toUserName=f['UserName'])
                     print(u"已发送：" + p)
@@ -50,13 +52,7 @@ def place_order(order_file, reverse=False):
         elif str == 'n' or str == "N":
             break
 
-    while(True):
-        ret = xls_processor.annotate_unknown_providers(unknown_providers)
-        if ret == True:
-            break
-        str = input("Annotaion failed. File may be open in other application. Retry? (Y/n)")
-        if str == 'n' or str == 'N':
-            break
+    ret = xls_processor.annotate_unknown_providers(unknown_providers)
 
 
 def send_today_exceptions(today_order_file):

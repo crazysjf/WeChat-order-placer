@@ -42,7 +42,15 @@ class XlsProcessor():
         self.nrows = 0
 
     def _save(self):
-        self.wb.save(self._f)
+        while (True):
+            try:
+                self.wb.save(self._f)
+                break
+            except IOError:
+                str = input("Save failed. File may be open in other application. Retry? (Y/n)")
+                if str == 'n' or str == 'N':
+                    break
+
 
     def _get_column_cn(self, name):
         for c in range(1, self.ws.max_column + 1):
@@ -138,11 +146,8 @@ class XlsProcessor():
             for p in unknown_provider:
                 if v == p:
                     cell.fill = sty.PatternFill(fill_type='solid', fgColor="ff6347")
-        try:
-            self._save()
-        except IOError:
-            return False
 
+        self._save()
         self._close()
         return True
 
@@ -520,6 +525,29 @@ class XlsProcessor():
 
         self._save()
         self._close()
+
+
+    def refresh_today_exceptions(self):
+        e = self.calc_order_exceptions()
+
+        self._open()
+        exception_cn = self._get_column_cn("金额") + 2 # 金额后面第二列为异常插入位置
+
+        for i in range(2, self.ws.max_row + 1):
+            p = str(self.ws.cell(row=i, column=self.provider_cn).value)
+            code = str(self.ws.cell(row=i, column=self.code_cn).value)
+            spec = str(self.ws.cell(row=i, column=self.spec_cn).value)
+
+            if p not in e.keys():
+                continue
+
+            for l in e[p]:
+                if code == l['code'] and spec == l['spec']:
+                    self.ws.cell(row=i,column=exception_cn).value = utils.gen_text_for_one_exception_line(l,simplified=True)
+
+        self._save()
+        self._close()
+
 
 if __name__ == "__main__":
     xp = XlsProcessor('./test.xlsx')

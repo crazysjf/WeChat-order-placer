@@ -130,6 +130,10 @@ while True:
     elif cmd == "ste":
         business_logic.send_today_exceptions(today_order_file)
 
+    elif cmd == "rte":
+        # 刷新今日异常，直接在当前报表上操作
+        xls_processor.XlsProcessor(today_order_file).refresh_today_exceptions()
+
     elif cmd == "iye":
         c = input('iye命令已废除，确定要使用？(y/N)：')
         if c != 'y' and c != 'Y':
