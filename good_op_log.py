@@ -10,4 +10,4 @@ class GoodsOpLog():
         df = self._df
         df = df[df['操作类型']=="快速上架"]
         df = df.groupby("商品编码")['数量'].sum()
-        print(df)
+        print(df["22170-9901-卡其x"])

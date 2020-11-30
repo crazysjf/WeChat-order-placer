@@ -6,6 +6,7 @@ from openpyxl.styles import Border, Side, Font, Alignment
 import utils
 import re
 import constants
+import pandas as pd
 
 class XlsProcessor():
     # 修改后的填充色
@@ -24,6 +25,7 @@ class XlsProcessor():
         self.wb = load_workbook(self._f)
         self.ws = self.wb.active
         self.nrows = self.ws.max_row
+        self.good_code_cn = self._get_column_cn(u'商品编码')
         self.provider_cn = self._get_column_cn(u'供应商')
         self.code_cn = self._get_column_cn(u'供应商款号')
         self.spec_cn = self._get_column_cn(u'颜色规格')
@@ -527,16 +529,30 @@ class XlsProcessor():
         self._close()
 
 
-    def refresh_today_exceptions(self):
+    def refresh_today_exceptions(self, good_op_log_file):
         e = self.calc_order_exceptions()
 
         self._open()
         exception_cn = self._get_column_cn("金额") + 2 # 金额后面第二列为异常插入位置
+        inbound_num_cn = exception_cn + 1
+
+        # 快速上架按编码汇总，注意sum()的返回结果是一个series，索引是商品编码
+        df = pd.read_excel(good_op_log_file)
+        df = df[df['操作类型'] == "快速上架"]
+        series = df.groupby("商品编码")['数量'].sum()
+        #print(df["22170-9901-卡其x"])
 
         for i in range(2, self.ws.max_row + 1):
             p = str(self.ws.cell(row=i, column=self.provider_cn).value)
+            good_code = str(self.ws.cell(row=i, column=self.good_code_cn).value)
             code = str(self.ws.cell(row=i, column=self.code_cn).value)
             spec = str(self.ws.cell(row=i, column=self.spec_cn).value)
+
+            v = "x"
+
+            if good_code in series.index:
+                v = series[good_code]
+            self.ws.cell(row=i, column=inbound_num_cn).value = v
 
             if p not in e.keys():
                 continue

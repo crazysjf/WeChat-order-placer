@@ -144,7 +144,7 @@ while True:
 
     elif cmd == "rte":
         # 刷新今日异常，直接在当前报表上操作
-        xls_processor.XlsProcessor(today_order_file).refresh_today_exceptions()
+        xls_processor.XlsProcessor(today_order_file).refresh_today_exceptions(good_op_log_file)
 
     elif cmd == "gof":
         GoodsOpLog(good_op_log_file).test()
