@@ -75,7 +75,7 @@ if yesterday_order_file is not None:
     yof_dir = os.path.dirname(yesterday_order_file)
     fs = os.listdir(yof_dir)
     for f in fs:
-        m = re.match('采购退货.*\.xlsx$', f)
+        m = re.match(r'.*采购退货.*\.xlsx$', f)
         if m != None:
             yesterday_defective_file = os.path.join(yof_dir, f)
 
@@ -85,7 +85,7 @@ if yesterday_order_file is not None:
         dir = os.path.dirname(dir) # 路径向上走一级
         fs = os.listdir(dir)
         for f in fs:
-            m = re.match('商品资料.*\.xlsx$', f)
+            m = re.match('商品信息.*\.xlsx$', f)
             if m != None:
                 goods_file = os.path.join(dir, f)
                 break
