@@ -536,11 +536,17 @@ class XlsProcessor():
         exception_cn = self._get_column_cn("金额") + 2 # 金额后面第二列为异常插入位置
         inbound_num_cn = exception_cn + 1
 
+        # 实际到货数量=快速上架数量+不绑定批次发货数量
+
         # 快速上架按编码汇总，注意sum()的返回结果是一个series，索引是商品编码
         df = pd.read_excel(good_op_log_file)
-        df = df[df['操作类型'] == "快速上架"]
-        series = df.groupby("商品编码")['数量'].sum()
-        #print(df["22170-9901-卡其x"])
+        tmp_df = df[df['操作类型'] == "快速上架"]
+        fast_on_shelf_series = tmp_df.groupby("商品编码")['数量'].sum() # 快速上架数量汇总
+
+        # 操作类型为“验货出库”，并且单据编号2==0的记录为不绑定批次发货记录
+        tmp_df = df[(df['操作类型'] == "验货出库") & (df['单据编号2'] == 0)]
+        no_bound_delivery_series = tmp_df.groupby("商品编码")['数量'].sum() # 不绑定批次发货数量汇总
+
 
         for i in range(2, self.ws.max_row + 1):
             p = str(self.ws.cell(row=i, column=self.provider_cn).value)
@@ -550,8 +556,12 @@ class XlsProcessor():
 
             v = "x"
 
-            if good_code in series.index:
-                v = series[good_code]
+            v1 = fast_on_shelf_series[good_code] if good_code in fast_on_shelf_series.index else 0
+            v2 = no_bound_delivery_series[good_code] if good_code in no_bound_delivery_series.index else 0
+
+            if v1 + v2 != 0:
+                v = v1 + v2
+
             self.ws.cell(row=i, column=inbound_num_cn).value = v
 
             if p not in e.keys():
