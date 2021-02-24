@@ -528,13 +528,38 @@ class XlsProcessor():
         self._save()
         self._close()
 
+    def _calc_received_num(self, order_nr_str, received_str):
+        """
+        计算实到数量。点货的时候可能在实到栏写加号，报单数量可能有欠货，在这里必须全部计算成实际数量。
+
+        :param order_nr: 报单字符串
+        :param received: 实到点货记录
+        :return: 实际收到货物数量
+        报单：10，      实到：+，    返回：10
+        报单：欠5，      实到：+，    返回：5
+        报单：欠5报5，    实到：+，   返回：10
+        报单：xx，      实到：空，   返回：0
+        """
+        (ordered, owed)= utils._parse_order_string(order_nr_str)
+        received = utils._parse_payed_received_string(received_str)
+        if received is None:
+            return 0
+        if received == "OK":
+            return ordered + owed
+        # 如果执行到此处，received为实际收到数字
+        return received
+
 
     def refresh_today_exceptions(self, good_op_log_file):
         e = self.calc_order_exceptions()
 
         self._open()
         exception_cn = self._get_column_cn("金额") + 2 # 金额后面第二列为异常插入位置
-        inbound_num_cn = exception_cn + 1
+        inbound_num_cn = exception_cn + 1 # 入库数量列
+        diff_num_cn = inbound_num_cn + 1 # 入库点货差
+        self.ws.cell(row=1, column=exception_cn).value = "异常"
+        self.ws.cell(row=1, column=inbound_num_cn).value = "入库数"
+        self.ws.cell(row=1, column=diff_num_cn).value = "入库点货差"
 
         # 实际到货数量=快速上架数量+不绑定批次发货数量
 
@@ -553,16 +578,21 @@ class XlsProcessor():
             good_code = str(self.ws.cell(row=i, column=self.good_code_cn).value)
             code = str(self.ws.cell(row=i, column=self.code_cn).value)
             spec = str(self.ws.cell(row=i, column=self.spec_cn).value)
-
-            v = "x"
+            order_nr_str = utils.convert_possible_num_to_str(self.ws.cell(row=i, column=self.nr_cn).value) # 报单数量
+            received_str = utils.convert_possible_num_to_str(self.ws.cell(row=i, column=self.received_cn).value) # 实到
+            received = self._calc_received_num(order_nr_str, received_str)
+            #print(received,order_nr_str,received_str)
+            #v = "x"
 
             v1 = fast_on_shelf_series[good_code] if good_code in fast_on_shelf_series.index else 0
             v2 = no_bound_delivery_series[good_code] if good_code in no_bound_delivery_series.index else 0
 
-            if v1 + v2 != 0:
-                v = v1 + v2
+            inbound_num = v1 + v2
 
-            self.ws.cell(row=i, column=inbound_num_cn).value = v
+            self.ws.cell(row=i, column=inbound_num_cn).value = inbound_num if inbound_num != 0 else "x"
+            diff = inbound_num - received
+            if diff != 0:
+                self.ws.cell(row=i, column=diff_num_cn).value = diff
 
             if p not in e.keys():
                 continue
