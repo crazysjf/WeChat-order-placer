@@ -2,7 +2,7 @@
 from datetime import date, datetime
 import re
 import shutil
-import os
+import os, os.path
 import pandas as pd
 import xls_processor
 import math
@@ -423,16 +423,13 @@ def gen_defectives_data(yesterday_defective_file, goods_file):
     ignored_defe_good_df：根据需要忽略掉的供应商次品数据。
 
     """
-    try:
+    if os.path.exists(yesterday_defective_file):
         df = pd.read_excel(yesterday_defective_file)
         print("正在解析商品资料...")
         goods_df = pd.read_excel(goods_file)
-
         print("完成")
-    except:
-        print("次品登记文件读取异常")
+    else:
         return None, None
-
 
     df = pd.merge(df, goods_df, how='left', left_on="商品编码", right_on="商品编码")
 
