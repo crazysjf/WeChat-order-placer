@@ -7,7 +7,7 @@ import pandas as pd
 import xls_processor
 import math
 import constants
-
+import config
 
 # 数字转字母
 # 0=>A, 1=>B, 2=>C，以此类推
@@ -567,22 +567,20 @@ def process_xls(today_order_file, yestoday_order_file, yesterday_defective_file=
                 df = df.append({"供应商":p, "供应商款号":c, "颜色规格": s, "数量":text}, ignore_index = True)
             elif len(list) == 1: # 表格中找到唯一对应行
                 # 如果欠货少于报单数，要写成“欠x报y，共z”的形式
-               i = list[0]
-               if not 'notation' in l.keys():
+                i = list[0]
+                if not 'notation' in l.keys():
                    suggested_nr = df.loc[i, "建议采购数"]
                    e_nr = l['nr']
 
-
-                   if e_nr >= suggested_nr:
-                       df.loc[i, "数量"] = text
-                   else:
-                       order_nr = (int((suggested_nr - e_nr)/5) + 1) * 5 # 向上取整到5
+                   if e_nr < suggested_nr and config.whether_place_order_when_owed_goods is True:
+                       order_nr = (int((suggested_nr - e_nr) / 5) + 1) * 5  # 向上取整到5
                        v = text + "报%d，共%d" % (order_nr, e_nr + order_nr)
                        df.loc[i, "数量"] = v
-               else:
-                   v = text + ',' + str(df.loc[list[0]]["数量"])
-                   df.loc[i,"数量"] = v
-
+                   else:
+                       df.loc[i, "数量"] = text
+                else:
+                    v = text + ',' + str(df.loc[list[0]]["数量"])
+                    df.loc[i, "数量"] = v
 
             else: # 报表有异常，有重复行
                 print("报表异常，多个位置发现同样商品：", p, l, list)
