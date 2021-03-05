@@ -410,8 +410,12 @@ class XlsProcessor():
                     self.ws.cell(row=i, column=self.code_cn).value is None:
                 continue
 
-            f = '=IF(ISBLANK({L}{ln}),{K}{ln},IF(OR({L}{ln}="x",{L}{ln}="X"),0, IF(ISNUMBER({L}{ln}), {L}{ln},{K}{ln}))) *{Q}{ln}'.format(
-                K=K, L=L, Q=Q, ln=i)
+            # 以下公式实，付栏为空当成照单付款
+            #f = '=IF(ISBLANK({L}{ln}),{K}{ln},IF(OR({L}{ln}="x",{L}{ln}="X"),0, IF(ISNUMBER({L}{ln}), {L}{ln},{K}{ln}))) *{Q}{ln}'.format(K=K, L=L, Q=Q, ln=i)
+
+            # 以下公式实，付栏为空当成未付款
+            f = '=IF(ISBLANK({L}{ln}), 0,IF(OR({L}{ln}="x",{L}{ln}="X"),0, IF(ISNUMBER({L}{ln}), {L}{ln},{K}{ln}))) *{Q}{ln}'.format(K=K, L=L, Q=Q, ln=i)
+
             self.ws.cell(row=i, column=amount_cn).value = f
 
         # 交替填充款号背景
