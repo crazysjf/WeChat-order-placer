@@ -2,12 +2,12 @@
 from datetime import date, datetime
 import re
 import shutil
-import os
+import os, os.path
 import pandas as pd
 import xls_processor
 import math
 import constants
-
+import config
 
 # 数字转字母
 # 0=>A, 1=>B, 2=>C，以此类推
@@ -66,7 +66,7 @@ def gen_order_text(orders, p):
         text = '报单生成错误'
     return text
 
-def gen_exception_summary(r):
+def gen_exception_summary(r, only_positive=False):
     '''
     打印到货异常汇总。
     :param r: 异常字典
@@ -79,6 +79,10 @@ def gen_exception_summary(r):
     for p in r.keys():
         lines = r[p]
         for l in lines:
+            if only_positive == True:
+                if not 'notation' in l.keys() and l['nr'] < 0:
+                    continue
+
             e_cnt = e_cnt + 1
             e_str = "%s: %s, %s, "  % (p, l['code'], l['spec']) + gen_text_for_one_exception_line(l)
             s = s + e_str + "\n"
@@ -86,7 +90,7 @@ def gen_exception_summary(r):
     s = s + "档口数： % s，异常数： % s\n\n" % (len(r.keys()), e_cnt)
     return s
 
-def print_exception_summary(r):
+def print_exception_summary(r, only_positive=False):
     # '''
     # 打印到货异常汇总。
     # :param r: 异常字典
@@ -104,7 +108,7 @@ def print_exception_summary(r):
     #         print(e_str)
     #     print("-------------------")
     # print("档口数： % s，异常数： % s\n" % (len(r.keys()), e_cnt))
-    print(gen_exception_summary(r))
+    print(gen_exception_summary(r, only_positive))
 
 def gen_all_orders_text(orders):
     s = u''
@@ -283,26 +287,32 @@ def calc_received_exceptions(nr_s, payed_s, received_s):
     :param nr: 
     :param payed: 实付，可能为空，数字，X，或其他
     :param received: 实拿，可能为空，数字，X，或其他
-    :return: （totoal, owed）,total:总计应拿，owed：欠货，正数 - 档口欠我们，0-平衡，负数：我们欠档口
+    :return: （received, owed）,total:总计应拿，owed：欠货，正数 - 档口欠我们，0-平衡，负数：我们欠档口
     '''
 
     ordered, owed = _parse_order_string(nr_s)
     payed = _parse_payed_received_string(payed_s)
     received = _parse_payed_received_string(received_s)
-    #total = ordered + owed
+    total = ordered + owed
 
     if payed == None:
         payed = 0
+        #payed = ordered
     if payed == 'OK':
         payed = ordered
 
-    if received == 'OK' or received == None:
-        return (received, 0) # 实拿没有问题，或者为空，则无异常
+    if received == None:
+        received = 0 # 收到为空即为0
+
+    if received == 'OK':
+        received = total
+
+    # 实拿没有问题，或者为空，则无异常
     # elif owed == 0 and received == None:
     #     return (total, 0) # 无欠货的情况下， 为空表示异常
-    else:
-        balance = owed + payed - received
-        return (received, balance)
+    #else:
+    balance = owed + payed - received
+    return (received, balance)
 
 def backup_file(f):
     #m = re.match(r'(.*)\.xlsx', f)
@@ -413,16 +423,13 @@ def gen_defectives_data(yesterday_defective_file, goods_file):
     ignored_defe_good_df：根据需要忽略掉的供应商次品数据。
 
     """
-    try:
+    if os.path.exists(yesterday_defective_file):
         df = pd.read_excel(yesterday_defective_file)
         print("正在解析商品资料...")
         goods_df = pd.read_excel(goods_file)
-
         print("完成")
-    except:
-        print("次品登记文件读取异常")
+    else:
         return None, None
-
 
     df = pd.merge(df, goods_df, how='left', left_on="商品编码", right_on="商品编码")
 
@@ -543,6 +550,12 @@ def process_xls(today_order_file, yestoday_order_file, yesterday_defective_file=
 
     for p in e.keys():
         for l in e[p]:
+
+            # 欠货如果为负数则不插入
+            if not 'notation' in l.keys() and  l['nr'] < 0:
+                continue
+
+
             c = l['code']
             s = l['spec']
 
@@ -554,20 +567,20 @@ def process_xls(today_order_file, yestoday_order_file, yesterday_defective_file=
                 df = df.append({"供应商":p, "供应商款号":c, "颜色规格": s, "数量":text}, ignore_index = True)
             elif len(list) == 1: # 表格中找到唯一对应行
                 # 如果欠货少于报单数，要写成“欠x报y，共z”的形式
-               i = list[0]
-               if not 'notation' in l.keys():
+                i = list[0]
+                if not 'notation' in l.keys():
                    suggested_nr = df.loc[i, "建议采购数"]
                    e_nr = l['nr']
-                   if e_nr >= suggested_nr:
-                       df.loc[i, "数量"] = text
-                   else:
-                       order_nr = (int((suggested_nr - e_nr)/5) + 1) * 5 # 向上取整到5
+
+                   if e_nr < suggested_nr and config.whether_place_order_when_owed_goods is True:
+                       order_nr = (int((suggested_nr - e_nr) / 5) + 1) * 5  # 向上取整到5
                        v = text + "报%d，共%d" % (order_nr, e_nr + order_nr)
                        df.loc[i, "数量"] = v
-               else:
-                   v = text + ',' + str(df.loc[list[0]]["数量"])
-                   df.loc[i,"数量"] = v
-
+                   else:
+                       df.loc[i, "数量"] = text
+                else:
+                    v = text + ',' + str(df.loc[list[0]]["数量"])
+                    df.loc[i, "数量"] = v
 
             else: # 报表有异常，有重复行
                 print("报表异常，多个位置发现同样商品：", p, l, list)

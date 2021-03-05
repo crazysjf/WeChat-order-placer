@@ -6,6 +6,7 @@ from openpyxl.styles import Border, Side, Font, Alignment
 import utils
 import re
 import constants
+import pandas as pd
 
 class XlsProcessor():
     # 修改后的填充色
@@ -24,6 +25,7 @@ class XlsProcessor():
         self.wb = load_workbook(self._f)
         self.ws = self.wb.active
         self.nrows = self.ws.max_row
+        self.good_code_cn = self._get_column_cn(u'商品编码')
         self.provider_cn = self._get_column_cn(u'供应商')
         self.code_cn = self._get_column_cn(u'供应商款号')
         self.spec_cn = self._get_column_cn(u'颜色规格')
@@ -42,7 +44,15 @@ class XlsProcessor():
         self.nrows = 0
 
     def _save(self):
-        self.wb.save(self._f)
+        while (True):
+            try:
+                self.wb.save(self._f)
+                break
+            except IOError:
+                str = input("Save failed. File may be open in other application. Retry? (Y/n)")
+                if str == 'n' or str == 'N':
+                    break
+
 
     def _get_column_cn(self, name):
         for c in range(1, self.ws.max_column + 1):
@@ -138,11 +148,8 @@ class XlsProcessor():
             for p in unknown_provider:
                 if v == p:
                     cell.fill = sty.PatternFill(fill_type='solid', fgColor="ff6347")
-        try:
-            self._save()
-        except IOError:
-            return False
 
+        self._save()
         self._close()
         return True
 
@@ -188,12 +195,12 @@ class XlsProcessor():
                 continue
 
             nr =  utils.convert_possible_num_to_str(self.ws.cell(row=i, column=self.nr_cn).value)
-            payed = utils.convert_possible_num_to_str(self.ws.cell(row=i, column=self.payed_cn).value)
-            received = utils.convert_possible_num_to_str(self.ws.cell(row=i, column=self.received_cn).value)
+            payed_s = utils.convert_possible_num_to_str(self.ws.cell(row=i, column=self.payed_cn).value)
+            received_s = utils.convert_possible_num_to_str(self.ws.cell(row=i, column=self.received_cn).value)
             abnormal_cn = self.sum_cn + 1 # 异常列。该列如果不为空，表示有异常，备注需要发送给档口
             abnormal = utils.convert_possible_num_to_str(self.ws.cell(row=i, column=abnormal_cn).value)
             notation = utils.convert_possible_num_to_str(self.ws.cell(row=i, column=self.notation_cn).value)
-            _, e = utils.calc_received_exceptions(nr, payed, received)
+            received, e = utils.calc_received_exceptions(nr, payed_s, received_s)
 
             # if abnormal != None:
             #     print('标记异常', i, notation)
@@ -520,6 +527,83 @@ class XlsProcessor():
 
         self._save()
         self._close()
+
+    def _calc_received_num(self, order_nr_str, received_str):
+        """
+        计算实到数量。点货的时候可能在实到栏写加号，报单数量可能有欠货，在这里必须全部计算成实际数量。
+
+        :param order_nr: 报单字符串
+        :param received: 实到点货记录
+        :return: 实际收到货物数量
+        报单：10，      实到：+，    返回：10
+        报单：欠5，      实到：+，    返回：5
+        报单：欠5报5，    实到：+，   返回：10
+        报单：xx，      实到：空，   返回：0
+        """
+        (ordered, owed)= utils._parse_order_string(order_nr_str)
+        received = utils._parse_payed_received_string(received_str)
+        if received is None:
+            return 0
+        if received == "OK":
+            return ordered + owed
+        # 如果执行到此处，received为实际收到数字
+        return received
+
+
+    def refresh_today_exceptions(self, good_op_log_file):
+        e = self.calc_order_exceptions()
+
+        self._open()
+        exception_cn = self._get_column_cn("金额") + 2 # 金额后面第二列为异常插入位置
+        inbound_num_cn = exception_cn + 1 # 入库数量列
+        diff_num_cn = inbound_num_cn + 1 # 入库点货差
+        self.ws.cell(row=1, column=exception_cn).value = "异常"
+        self.ws.cell(row=1, column=inbound_num_cn).value = "入库数"
+        self.ws.cell(row=1, column=diff_num_cn).value = "入库点货差"
+
+        # 实际到货数量=快速上架数量+不绑定批次发货数量
+
+        # 快速上架按编码汇总，注意sum()的返回结果是一个series，索引是商品编码
+        df = pd.read_excel(good_op_log_file)
+        tmp_df = df[df['操作类型'] == "快速上架"]
+        fast_on_shelf_series = tmp_df.groupby("商品编码")['数量'].sum() # 快速上架数量汇总
+
+        # 操作类型为“验货出库”，并且单据编号2==0的记录为不绑定批次发货记录
+        tmp_df = df[(df['操作类型'] == "验货出库") & (df['单据编号2'] == 0)]
+        no_bound_delivery_series = tmp_df.groupby("商品编码")['数量'].sum() # 不绑定批次发货数量汇总
+
+
+        for i in range(2, self.ws.max_row + 1):
+            p = str(self.ws.cell(row=i, column=self.provider_cn).value)
+            good_code = str(self.ws.cell(row=i, column=self.good_code_cn).value)
+            code = str(self.ws.cell(row=i, column=self.code_cn).value)
+            spec = str(self.ws.cell(row=i, column=self.spec_cn).value)
+            order_nr_str = utils.convert_possible_num_to_str(self.ws.cell(row=i, column=self.nr_cn).value) # 报单数量
+            received_str = utils.convert_possible_num_to_str(self.ws.cell(row=i, column=self.received_cn).value) # 实到
+            received = self._calc_received_num(order_nr_str, received_str)
+            #print(received,order_nr_str,received_str)
+            #v = "x"
+
+            v1 = fast_on_shelf_series[good_code] if good_code in fast_on_shelf_series.index else 0
+            v2 = no_bound_delivery_series[good_code] if good_code in no_bound_delivery_series.index else 0
+
+            inbound_num = v1 + v2
+
+            self.ws.cell(row=i, column=inbound_num_cn).value = inbound_num if inbound_num != 0 else "x"
+            diff = inbound_num - received
+            if diff != 0:
+                self.ws.cell(row=i, column=diff_num_cn).value = diff
+
+            if p not in e.keys():
+                continue
+
+            for l in e[p]:
+                if code == l['code'] and spec == l['spec']:
+                    self.ws.cell(row=i,column=exception_cn).value = utils.gen_text_for_one_exception_line(l,simplified=True)
+
+        self._save()
+        self._close()
+
 
 if __name__ == "__main__":
     xp = XlsProcessor('./test.xlsx')
