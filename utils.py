@@ -687,7 +687,7 @@ def process_xls(today_order_file, yestoday_order_file, yesterday_defective_file=
                 if ll['code'] == code and ll['spec'] == spec:
                     in_exceptions = True
 
-        return ("收" in s or "清" in s or "销低" in s) and (in_exceptions is not True)#"欠" not in nr  and "换" not in nr
+        return ("收" in s or "清" in s or "销低" in s) and (in_exceptions is not True) and ("次" not in spec)#"欠" not in nr  and "换" not in nr
 
     #idx = df['商品备注'].apply(lambda s: ("收" in str(s) or "清" in str(s) or "销低" in str(s)) and "欠" not in str(s) and "换" not in str(s))
     idx = df.apply(lam, axis=1)
