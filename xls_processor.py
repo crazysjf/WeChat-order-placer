@@ -25,6 +25,7 @@ class XlsProcessor():
         self.wb = load_workbook(self._f)
         self.ws = self.wb.active
         self.nrows = self.ws.max_row
+        self.style_code_cn = self._get_column_cn(u'款式编码')
         self.good_code_cn = self._get_column_cn(u'商品编码')
         self.provider_cn = self._get_column_cn(u'供应商')
         self.code_cn = self._get_column_cn(u'供应商款号')
@@ -160,10 +161,10 @@ class XlsProcessor():
         其他
         返回： 格式：
         {
-        档口1: [{code: 商品编码1， spec: 规格1, nr: 欠货数1,  'received':到货数1, 'notation': 备注, }，
-                {code: 商品编码2， spec: 规格2, nr: 欠货数2, 'received':到货数2... ],
-        档口2: [{code: 商品编码1， spec: 规格1, nr: 欠货数1,'received':到货数1, 'notation':备注},
-                {code: 商品编码2， spec: 规格2, nr: 欠货数2, 'received':到货数2... ],
+        档口1: [{code: 供应商款号1， spec: 规格1, nr: 欠货数1,  'received':到货数1, 'notation': 备注, }，
+                {code: 供应商款号2， spec: 规格2, nr: 欠货数2, 'received':到货数2... ],
+        档口2: [{code: 供应商款号1， spec: 规格1, nr: 欠货数1,'received':到货数1, 'notation':备注},
+                {code: 供应商款号2， spec: 规格2, nr: 欠货数2, 'received':到货数2... ],
         ...
         }
         如果有'notation'键，表明备注需要发送给档口
@@ -181,7 +182,9 @@ class XlsProcessor():
 
         for i in range(2, self.nrows):
             provider = utils.convert_possible_num_to_str(self.ws.cell(row=i, column=self.provider_cn).value)
-            code = utils.convert_possible_num_to_str(self.ws.cell(row=i, column=self.code_cn).value)
+            code = utils.convert_possible_num_to_str(self.ws.cell(row=i, column=self.code_cn).value) # 供应商编码
+            style_code = utils.convert_possible_num_to_str(self.ws.cell(row=i, column=self.style_code_cn).value)
+            good_code  = utils.convert_possible_num_to_str(self.ws.cell(row=i, column=self.good_code_cn).value)
             spec = self.ws.cell(row=i, column=self.spec_cn).value
 
             # 截止到内容未**，或者“样衣”两个字的行
@@ -206,7 +209,7 @@ class XlsProcessor():
             #     print('标记异常', i, notation)
 
             if e != 0 or abnormal != None:
-                line = {'code':code, 'spec':spec, 'nr': e, 'received':received}
+                line = {'style_code': style_code, 'good_code': good_code, 'code':code, 'spec':spec, 'nr': e, 'received':received}
                 if abnormal != None:
                     if notation == None:
                         #print("%s, %s, %s: 可能出错误，备注需要作为异常采用，但是为空"%(provider,code,spec))

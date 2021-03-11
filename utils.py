@@ -564,7 +564,7 @@ def process_xls(today_order_file, yestoday_order_file, yesterday_defective_file=
             text = gen_text_for_one_exception_line(l, True)
             #print(text)
             if len(list) == 0:  # 表格中没有对应行
-                df = df.append({"供应商":p, "供应商款号":c, "颜色规格": s, "数量":text}, ignore_index = True)
+                df = df.append({"款式编码": l['style_code'], "商品编码":l['good_code'], "供应商":p, "供应商款号":c, "颜色规格": s, "数量":text}, ignore_index = True)
             elif len(list) == 1: # 表格中找到唯一对应行
                 # 如果欠货少于报单数，要写成“欠x报y，共z”的形式
                 i = list[0]
@@ -609,7 +609,7 @@ def process_xls(today_order_file, yestoday_order_file, yesterday_defective_file=
         if anno != anno:
             anno = ""
 
-        if code == code: # 商品编码不为空
+        if isinstance(code, str): # 商品编码不为空
             #(p, c, s, *_) = code.split('-')
             # 不要用tupple unpack以防编码格式不对导致异常
             splited = code.split('-')
